@@ -1,0 +1,11 @@
+{
+  "name": "Lightning POS",
+  "short_name": "LN POS",
+  "description": "Bitcoin Lightning Point of Sale",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0F0F0F",
+  "theme_color": "#F7931A",
+  "icons": []
+}

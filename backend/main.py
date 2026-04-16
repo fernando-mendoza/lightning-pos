@@ -1,0 +1,37 @@
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from config import settings
+from infrastructure.db.connection import init_db, close_db
+from presentation.routes import products, pos, sales, webhooks, auth
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+    await close_db()
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(products.router, prefix="/api/products", tags=["products"])
+app.include_router(pos.router, prefix="/api", tags=["pos"])
+app.include_router(sales.router, prefix="/api/sales", tags=["sales"])
+app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
+
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}

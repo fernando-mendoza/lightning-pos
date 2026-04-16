@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  /* Background */
+  --color-bg-primary: #0F0F0F;
+  --color-bg-surface: #1A1A1A;
+  --color-bg-surface-hover: #252525;
+
+  /* Border */
+  --color-border-default: #2A2A2A;
+
+  /* Text */
+  --color-text-primary: #F5F5F5;
+  --color-text-secondary: #A0A0A0;
+
+  /* Accent — Bitcoin orange */
+  --color-accent: #F7931A;
+  --color-accent-hover: #E8850F;
+
+  /* Semantic */
+  --color-success: #22C55E;
+  --color-warning: #FACC15;
+  --color-error: #EF4444;
+
+  /* QR */
+  --color-qr-bg: #FFFFFF;
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+}
