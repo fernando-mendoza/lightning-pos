@@ -81,13 +81,22 @@ export default function PaymentPage() {
       </div>
 
       {expired ? (
-        <div className="mt-6 text-center">
-          <p className="mb-2 text-error">Invoice expirado</p>
+        <div className="mt-6 space-y-3 text-center">
+          <p className="text-error">Invoice expirado</p>
           <button
-            onClick={() => navigate("/pos")}
-            className="rounded-lg border border-border-default px-4 py-2 text-sm text-text-secondary hover:bg-bg-surface-hover"
+            onClick={() => navigate("/pos", { replace: true })}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-bg-primary hover:bg-accent-hover"
           >
-            Volver al POS
+            Generar nuevo
+          </button>
+          <button
+            onClick={() => {
+              cart.clear();
+              navigate("/pos", { replace: true });
+            }}
+            className="block mx-auto text-xs text-text-secondary hover:text-text-primary"
+          >
+            Cancelar venta
           </button>
         </div>
       ) : (

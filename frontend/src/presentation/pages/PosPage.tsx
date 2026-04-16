@@ -35,10 +35,12 @@ export default function PosPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="mb-3 flex items-center justify-between">
           <h1 className="text-lg font-bold">POS</h1>
-          {rate && (
+          {rate ? (
             <span className="font-mono text-xs text-text-secondary">
               1 BTC = ${rate.mxn_per_btc.toLocaleString()} MXN
             </span>
+          ) : (
+            <span className="text-xs text-warning">Sin tipo de cambio</span>
           )}
         </div>
 
@@ -99,7 +101,7 @@ export default function PosPage() {
             className="absolute inset-0 bg-black/60"
             onClick={() => setShowCart(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[70dvh] rounded-t-xl bg-bg-surface p-4">
+          <div className="absolute inset-x-0 bottom-0 max-h-[70dvh] overflow-y-auto rounded-t-xl bg-bg-surface p-4">
             <Cart
               items={cartState.items}
               totalMxn={cartState.totalMxn}
