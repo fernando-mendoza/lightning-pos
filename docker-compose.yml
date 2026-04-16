@@ -1,0 +1,47 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: lightning-pos-backend:latest
+    container_name: lightning-pos-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      LPOS_DB_PATH: /app/data/lightning-pos.db
+    volumes:
+      - lightning-pos-data:/app/data
+    expose:
+      - "8000"
+    networks:
+      - lightning-pos-net
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: lightning-pos-frontend:latest
+    container_name: lightning-pos-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - lightning-pos-net
+
+networks:
+  lightning-pos-net:
+    driver: bridge
+
+volumes:
+  lightning-pos-data:
+    driver: local
