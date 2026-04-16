@@ -1,10 +1,11 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from infrastructure.db.connection import init_db, close_db
+from infrastructure.ws.manager import ws_manager
 from presentation.routes import products, pos, sales, webhooks, auth
 
 
@@ -35,3 +36,13 @@ app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.websocket("/ws/payments")
+async def ws_payments(ws: WebSocket):
+    await ws_manager.connect(ws)
+    try:
+        while True:
+            await ws.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(ws)

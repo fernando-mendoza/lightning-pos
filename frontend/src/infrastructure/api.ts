@@ -29,6 +29,17 @@ export const api = {
     remove: (id: string) =>
       request<void>(`/products/${id}`, { method: "DELETE" }),
   },
+  invoices: {
+    create: (items: InvoiceItem[]) =>
+      request<InvoiceResponse>("/invoices", {
+        method: "POST",
+        body: JSON.stringify({ items }),
+      }),
+    status: (paymentHash: string) =>
+      request<{ payment_hash: string; status: string }>(
+        `/invoices/${paymentHash}/status`
+      ),
+  },
 };
 
 interface Product {
@@ -43,4 +54,21 @@ interface Product {
 interface ProductInput {
   name: string;
   price_mxn: number;
+}
+
+interface InvoiceItem {
+  product_id: string;
+  product_name: string;
+  price_mxn: number;
+  quantity: number;
+}
+
+interface InvoiceResponse {
+  sale_id: string;
+  payment_hash: string;
+  bolt11: string;
+  total_mxn: number;
+  total_sats: number;
+  exchange_rate: number;
+  expires_at: number;
 }
