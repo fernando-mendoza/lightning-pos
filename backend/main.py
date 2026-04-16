@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from infrastructure.db.connection import init_db, close_db
 from infrastructure.ws.manager import ws_manager
+from presentation.middleware.pin_auth import PinAuthMiddleware
 from presentation.routes import products, pos, sales, webhooks, auth
 
 
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
+app.add_middleware(PinAuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

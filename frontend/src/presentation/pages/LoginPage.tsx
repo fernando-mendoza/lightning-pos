@@ -1,10 +1,44 @@
-export default function LoginPage() {
+import { useAuth } from "../../application/hooks/useAuth";
+import PinPad from "../components/PinPad";
+
+interface Props {
+  onAuthenticated: () => void;
+}
+
+export default function LoginPage({ onAuthenticated }: Props) {
+  const { pinSet, loading, login, setupPin } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-bg-primary">
+        <p className="text-text-secondary">Cargando...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-dvh items-center justify-center bg-bg-primary">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold">Lightning POS</h1>
-        <p className="text-text-secondary">PIN pad — pendiente de implementar</p>
-      </div>
+      {pinSet ? (
+        <PinPad
+          title="Lightning POS"
+          subtitle="Ingresa tu PIN"
+          onSubmit={async (pin) => {
+            const ok = await login(pin);
+            if (ok) onAuthenticated();
+            return ok;
+          }}
+        />
+      ) : (
+        <PinPad
+          title="Lightning POS"
+          subtitle="Configura tu PIN de acceso"
+          onSubmit={async (pin) => {
+            const ok = await setupPin(pin);
+            if (ok) onAuthenticated();
+            return ok;
+          }}
+        />
+      )}
     </div>
   );
 }

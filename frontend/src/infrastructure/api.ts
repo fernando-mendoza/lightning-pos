@@ -1,10 +1,19 @@
+import { getToken } from "../application/hooks/useAuth";
+
 const BASE = "/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...init?.headers },
-    ...init,
-  });
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...Object.fromEntries(
+      Object.entries(init?.headers ?? {}).filter(([, v]) => v != null) as [string, string][]
+    ),
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${BASE}${path}`, { ...init, headers });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`${res.status}: ${body}`);
