@@ -8,6 +8,7 @@ import SettingsPage from "./presentation/pages/SettingsPage";
 import LoginPage from "./presentation/pages/LoginPage";
 import PaymentPage from "./presentation/pages/PaymentPage";
 import ConfirmationPage from "./presentation/pages/ConfirmationPage";
+import DashboardPage from "./presentation/pages/DashboardPage";
 
 export default function App() {
   const { authenticated, pinSet, loading } = useAuth();
@@ -42,6 +43,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/pos" element={<PosPage />} />
           <Route path="/pos/pay" element={<PaymentPage />} />
           <Route path="/pos/confirmed" element={<ConfirmationPage />} />

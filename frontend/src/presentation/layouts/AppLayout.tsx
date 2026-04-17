@@ -1,8 +1,16 @@
 import { Outlet, NavLink } from "react-router-dom";
-import { ShoppingCart, Package, BarChart3, Settings, LogOut } from "lucide-react";
+import {
+  ShoppingCart,
+  Package,
+  BarChart3,
+  Settings,
+  LogOut,
+  LayoutDashboard,
+} from "lucide-react";
 import { clearSessionAndReload } from "../../application/hooks/useAuth";
 
 const navItems = [
+  { to: "/dashboard", label: "Inicio", icon: LayoutDashboard },
   { to: "/pos", label: "POS", icon: ShoppingCart },
   { to: "/products", label: "Productos", icon: Package },
   { to: "/history", label: "Historial", icon: BarChart3 },

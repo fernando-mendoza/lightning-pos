@@ -7,7 +7,7 @@ from config import settings
 from infrastructure.db.connection import init_db, close_db
 from infrastructure.ws.manager import ws_manager
 from presentation.middleware.pin_auth import PinAuthMiddleware
-from presentation.routes import products, pos, sales, webhooks, auth
+from presentation.routes import products, pos, sales, webhooks, auth, dashboard
 
 
 @asynccontextmanager
@@ -33,6 +33,7 @@ app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(pos.router, prefix="/api", tags=["pos"])
 app.include_router(sales.router, prefix="/api/sales", tags=["sales"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 
 
 @app.get("/api/health")

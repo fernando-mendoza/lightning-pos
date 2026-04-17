@@ -61,6 +61,60 @@ class SaleRepoSQLite(SaleRepository):
         await db.commit()
         return cursor.rowcount > 0
 
+    async def summary_by_day(
+        self, start_date: str, end_date: str
+    ) -> list[dict]:
+        db = await get_db()
+        cursor = await db.execute(
+            """SELECT date(created_at) AS day,
+                      COALESCE(SUM(total_mxn), 0) AS total_mxn,
+                      COALESCE(SUM(total_sats), 0) AS total_sats,
+                      COUNT(*) AS count
+               FROM sales
+               WHERE date(created_at) BETWEEN ? AND ?
+                 AND status = 'paid'
+               GROUP BY day
+               ORDER BY day""",
+            (start_date, end_date),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "date": r["day"],
+                "total_mxn": float(r["total_mxn"]),
+                "total_sats": int(r["total_sats"]),
+                "count": int(r["count"]),
+            }
+            for r in rows
+        ]
+
+    async def top_products(
+        self, start_date: str, end_date: str, limit: int
+    ) -> list[dict]:
+        db = await get_db()
+        cursor = await db.execute(
+            """SELECT si.product_name AS name,
+                      SUM(si.quantity) AS quantity,
+                      SUM(si.subtotal_mxn) AS total_mxn
+               FROM sale_items si
+               JOIN sales s ON si.sale_id = s.id
+               WHERE date(s.created_at) BETWEEN ? AND ?
+                 AND s.status = 'paid'
+               GROUP BY si.product_name
+               ORDER BY quantity DESC
+               LIMIT ?""",
+            (start_date, end_date, limit),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "name": r["name"],
+                "quantity": int(r["quantity"]),
+                "total_mxn": float(r["total_mxn"]),
+            }
+            for r in rows
+        ]
+
     async def list_by_date(self, date_str: str) -> list[Sale]:
         db = await get_db()
         cursor = await db.execute(

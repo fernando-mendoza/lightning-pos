@@ -18,3 +18,13 @@ class SaleRepository(ABC):
 
     @abstractmethod
     async def list_by_date(self, date_str: str) -> list[Sale]: ...
+
+    @abstractmethod
+    async def summary_by_day(
+        self, start_date: str, end_date: str
+    ) -> list[dict]: ...
+
+    @abstractmethod
+    async def top_products(
+        self, start_date: str, end_date: str, limit: int
+    ) -> list[dict]: ...
