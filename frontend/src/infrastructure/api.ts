@@ -43,10 +43,17 @@ export const api = {
       request<void>(`/products/${id}`, { method: "DELETE" }),
   },
   invoices: {
-    create: (items: InvoiceItem[]) =>
+    create: (
+      items: InvoiceItem[],
+      options: { tipMxn?: number; discountMxn?: number } = {}
+    ) =>
       request<InvoiceResponse>("/invoices", {
         method: "POST",
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({
+          items,
+          tip_mxn: options.tipMxn ?? 0,
+          discount_mxn: options.discountMxn ?? 0,
+        }),
       }),
     status: (paymentHash: string) =>
       request<{ payment_hash: string; status: string }>(
@@ -89,4 +96,6 @@ interface InvoiceResponse {
   total_sats: number;
   exchange_rate: number;
   expires_at: number;
+  tip_mxn: number;
+  discount_mxn: number;
 }

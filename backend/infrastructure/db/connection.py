@@ -29,6 +29,12 @@ async def close_db() -> None:
         _db = None
 
 
+async def _column_exists(db: aiosqlite.Connection, table: str, col: str) -> bool:
+    cursor = await db.execute(f"PRAGMA table_info({table})")
+    rows = await cursor.fetchall()
+    return any(r[1] == col for r in rows)
+
+
 async def _run_migrations(db: aiosqlite.Connection) -> None:
     await db.executescript("""
         CREATE TABLE IF NOT EXISTS products (
@@ -72,3 +78,11 @@ async def _run_migrations(db: aiosqlite.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
         CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
     """)
+
+    # Additive migrations (idempotent — only apply if column is missing)
+    for col, col_def in [
+        ("tip_mxn", "REAL NOT NULL DEFAULT 0"),
+        ("discount_mxn", "REAL NOT NULL DEFAULT 0"),
+    ]:
+        if not await _column_exists(db, "sales", col):
+            await db.execute(f"ALTER TABLE sales ADD COLUMN {col} {col_def}")

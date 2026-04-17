@@ -23,6 +23,8 @@ class SaleResponse(BaseModel):
     status: str
     created_at: str
     paid_at: str | None
+    tip_mxn: float
+    discount_mxn: float
     items: list[SaleItemResponse]
 
 
@@ -39,6 +41,8 @@ async def get_sales(date: str = Query(pattern=r"^\d{4}-\d{2}-\d{2}$")):
             status=s.status,
             created_at=s.created_at,
             paid_at=s.paid_at,
+            tip_mxn=s.tip_mxn,
+            discount_mxn=s.discount_mxn,
             items=[
                 SaleItemResponse(
                     product_name=i.product_name,

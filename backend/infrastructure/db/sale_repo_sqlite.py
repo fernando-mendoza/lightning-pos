@@ -10,11 +10,13 @@ class SaleRepoSQLite(SaleRepository):
         db = await get_db()
         await db.execute(
             """INSERT INTO sales (id, total_mxn, total_sats, exchange_rate,
-               payment_hash, bolt11, status, created_at, paid_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               payment_hash, bolt11, status, created_at, paid_at,
+               tip_mxn, discount_mxn)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (sale.id, sale.total_mxn, sale.total_sats, sale.exchange_rate,
              sale.payment_hash, sale.bolt11, sale.status,
-             sale.created_at, sale.paid_at),
+             sale.created_at, sale.paid_at,
+             sale.tip_mxn, sale.discount_mxn),
         )
         for item in sale.items:
             await db.execute(
@@ -96,6 +98,7 @@ class SaleRepoSQLite(SaleRepository):
 
     @staticmethod
     def _row_to_sale(row) -> Sale:
+        keys = row.keys()
         return Sale(
             id=row["id"],
             total_mxn=row["total_mxn"],
@@ -106,4 +109,6 @@ class SaleRepoSQLite(SaleRepository):
             status=row["status"],
             created_at=row["created_at"],
             paid_at=row["paid_at"],
+            tip_mxn=row["tip_mxn"] if "tip_mxn" in keys else 0.0,
+            discount_mxn=row["discount_mxn"] if "discount_mxn" in keys else 0.0,
         )

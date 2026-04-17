@@ -21,7 +21,9 @@ class Sale:
     exchange_rate: float
     payment_hash: str
     bolt11: str
-    status: str = "pending"  # pending | paid | expired
+    status: str = "pending"  # pending | paid | expired | canceled
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     paid_at: str | None = None
+    tip_mxn: float = 0.0
+    discount_mxn: float = 0.0
     items: list[SaleItem] = field(default_factory=list)

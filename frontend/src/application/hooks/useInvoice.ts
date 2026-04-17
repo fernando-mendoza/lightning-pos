@@ -10,6 +10,13 @@ interface InvoiceData {
   total_sats: number;
   exchange_rate: number;
   expires_at: number;
+  tip_mxn: number;
+  discount_mxn: number;
+}
+
+interface CheckoutOptions {
+  tipMxn?: number;
+  discountMxn?: number;
 }
 
 export function useInvoice() {
@@ -17,7 +24,10 @@ export function useInvoice() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createInvoice = async (items: CartItem[]) => {
+  const createInvoice = async (
+    items: CartItem[],
+    options: CheckoutOptions = {}
+  ) => {
     setLoading(true);
     setError(null);
     try {
@@ -27,7 +37,7 @@ export function useInvoice() {
         price_mxn: i.product.price_mxn,
         quantity: i.quantity,
       }));
-      const data = await api.invoices.create(payload);
+      const data = await api.invoices.create(payload, options);
       setInvoice(data);
       return data;
     } catch (e) {

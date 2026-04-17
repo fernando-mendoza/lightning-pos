@@ -11,10 +11,22 @@ async def create_invoice(
     exchange_service: ExchangeRateService,
     lightning_service: LightningService,
     sale_repo: SaleRepository,
+    tip_mxn: float = 0.0,
+    discount_mxn: float = 0.0,
 ) -> dict:
     rate = await exchange_service.get_rate()
 
-    total_mxn = sum(i["price_mxn"] * i["quantity"] for i in items)
+    subtotal_mxn = sum(i["price_mxn"] * i["quantity"] for i in items)
+
+    if discount_mxn < 0 or tip_mxn < 0:
+        raise ValueError("tip and discount cannot be negative")
+    if discount_mxn > subtotal_mxn:
+        raise ValueError("discount cannot exceed subtotal")
+
+    total_mxn = subtotal_mxn - discount_mxn + tip_mxn
+    if total_mxn <= 0:
+        raise ValueError("Total after discount/tip must be positive")
+
     total_sats = rate.mxn_to_sats(total_mxn)
 
     if total_sats < 1:
@@ -48,6 +60,8 @@ async def create_invoice(
         exchange_rate=rate.mxn_per_btc,
         payment_hash=invoice.payment_hash,
         bolt11=invoice.bolt11,
+        tip_mxn=tip_mxn,
+        discount_mxn=discount_mxn,
         items=sale_items,
     )
     await sale_repo.create(sale)
@@ -60,4 +74,6 @@ async def create_invoice(
         "total_sats": total_sats,
         "exchange_rate": rate.mxn_per_btc,
         "expires_at": invoice.expires_at,
+        "tip_mxn": tip_mxn,
+        "discount_mxn": discount_mxn,
     }

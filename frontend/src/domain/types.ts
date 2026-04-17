@@ -27,6 +27,8 @@ export interface Sale {
   status: "pending" | "paid" | "expired" | "canceled";
   created_at: string;
   paid_at: string | null;
+  tip_mxn: number;
+  discount_mxn: number;
   items: SaleItem[];
 }
 

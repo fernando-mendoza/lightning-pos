@@ -1,4 +1,4 @@
-const CACHE_NAME = "lpos-v9";
+const CACHE_NAME = "lpos-v10";
 const SHELL_URLS = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {

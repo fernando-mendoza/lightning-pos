@@ -30,6 +30,8 @@ class InvoiceItem(BaseModel):
 
 class CreateInvoiceRequest(BaseModel):
     items: list[InvoiceItem] = Field(min_length=1)
+    tip_mxn: float = Field(default=0.0, ge=0)
+    discount_mxn: float = Field(default=0.0, ge=0)
 
 
 class CreateInvoiceResponse(BaseModel):
@@ -40,6 +42,8 @@ class CreateInvoiceResponse(BaseModel):
     total_sats: int
     exchange_rate: float
     expires_at: int
+    tip_mxn: float
+    discount_mxn: float
 
 
 @router.get("/exchange-rate", response_model=ExchangeRateResponse)
@@ -68,7 +72,16 @@ async def post_invoice(body: CreateInvoiceRequest):
         for i in body.items
     ]
     try:
-        result = await create_invoice(items, exchange_service, lightning_service, sale_repo)
+        result = await create_invoice(
+            items,
+            exchange_service,
+            lightning_service,
+            sale_repo,
+            tip_mxn=body.tip_mxn,
+            discount_mxn=body.discount_mxn,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     return CreateInvoiceResponse(**result)

@@ -9,6 +9,8 @@ const CSV_HEADERS = [
   "paid_at",
   "status",
   "total_mxn",
+  "tip_mxn",
+  "discount_mxn",
   "total_sats",
   "exchange_rate",
   "payment_hash",
@@ -27,6 +29,8 @@ function downloadSalesCsv(sales: Sale[], dateStr: string): void {
     s.paid_at ?? "",
     s.status,
     s.total_mxn.toFixed(2),
+    s.tip_mxn.toFixed(2),
+    s.discount_mxn.toFixed(2),
     s.total_sats,
     s.exchange_rate,
     s.payment_hash,
@@ -192,6 +196,44 @@ function SaleCard({ sale, expanded, onToggle }: SaleCardProps) {
               </table>
             </div>
           </div>
+
+          {/* Breakdown (solo si hay propina o descuento) */}
+          {(sale.tip_mxn > 0 || sale.discount_mxn > 0) && (
+            <div>
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-text-secondary">
+                Desglose
+              </h3>
+              <dl className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-text-secondary">Subtotal items</dt>
+                  <dd className="font-mono">
+                    $
+                    {(
+                      sale.total_mxn - sale.tip_mxn + sale.discount_mxn
+                    ).toFixed(2)}
+                  </dd>
+                </div>
+                {sale.discount_mxn > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-text-secondary">Descuento</dt>
+                    <dd className="font-mono">-${sale.discount_mxn.toFixed(2)}</dd>
+                  </div>
+                )}
+                {sale.tip_mxn > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-text-secondary">Propina</dt>
+                    <dd className="font-mono">+${sale.tip_mxn.toFixed(2)}</dd>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-border-default pt-1">
+                  <dt className="font-medium">Total</dt>
+                  <dd className="font-mono font-bold">
+                    ${sale.total_mxn.toFixed(2)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
 
           {/* Metadata grid */}
           <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-2 sm:gap-x-6">

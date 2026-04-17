@@ -14,14 +14,11 @@ export default function PosPage() {
   const navigate = useNavigate();
   const [showCart, setShowCart] = useState(false);
 
-  const totalSats =
-    rate && cartState.totalMxn > 0
-      ? Math.round(cartState.totalMxn * (100_000_000 / rate.mxn_per_btc))
-      : null;
+  const satsPerMxn = rate ? 100_000_000 / rate.mxn_per_btc : null;
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (tipMxn: number, discountMxn: number) => {
     if (cartState.items.length === 0) return;
-    const data = await createInvoice(cartState.items);
+    const data = await createInvoice(cartState.items, { tipMxn, discountMxn });
     if (data) {
       navigate(
         `/pos/pay?hash=${data.payment_hash}&bolt11=${encodeURIComponent(data.bolt11)}&mxn=${data.total_mxn}&sats=${data.total_sats}&expires=${data.expires_at}&sale=${data.sale_id}`
@@ -75,8 +72,8 @@ export default function PosPage() {
       <div className="hidden w-72 shrink-0 rounded-lg border border-border-default bg-bg-surface p-4 md:flex md:flex-col">
         <Cart
           items={cartState.items}
-          totalMxn={cartState.totalMxn}
-          totalSats={totalSats}
+          subtotalMxn={cartState.totalMxn}
+          satsPerMxn={satsPerMxn}
           onUpdateQuantity={cartState.updateQuantity}
           onRemove={cartState.remove}
           onCheckout={handleCheckout}
@@ -104,13 +101,13 @@ export default function PosPage() {
           <div className="absolute inset-x-0 bottom-0 max-h-[70dvh] overflow-y-auto rounded-t-xl bg-bg-surface p-4">
             <Cart
               items={cartState.items}
-              totalMxn={cartState.totalMxn}
-              totalSats={totalSats}
+              subtotalMxn={cartState.totalMxn}
+              satsPerMxn={satsPerMxn}
               onUpdateQuantity={cartState.updateQuantity}
               onRemove={cartState.remove}
-              onCheckout={() => {
+              onCheckout={(tipMxn, discountMxn) => {
                 setShowCart(false);
-                handleCheckout();
+                handleCheckout(tipMxn, discountMxn);
               }}
               onClear={cartState.clear}
               checkoutDisabled={invoiceLoading || cartState.items.length === 0}
