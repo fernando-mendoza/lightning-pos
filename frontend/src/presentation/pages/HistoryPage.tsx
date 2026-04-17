@@ -1,7 +1,50 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Download } from "lucide-react";
 import { useSales } from "../../application/hooks/useSales";
 import type { Sale } from "../../domain/types";
+
+const CSV_HEADERS = [
+  "id",
+  "created_at",
+  "paid_at",
+  "status",
+  "total_mxn",
+  "total_sats",
+  "exchange_rate",
+  "payment_hash",
+  "items",
+];
+
+function csvEscape(value: string | number | null | undefined): string {
+  const str = value === null || value === undefined ? "" : String(value);
+  return `"${str.replace(/"/g, '""')}"`;
+}
+
+function downloadSalesCsv(sales: Sale[], dateStr: string): void {
+  const rows = sales.map((s) => [
+    s.id,
+    s.created_at,
+    s.paid_at ?? "",
+    s.status,
+    s.total_mxn.toFixed(2),
+    s.total_sats,
+    s.exchange_rate,
+    s.payment_hash,
+    s.items.map((i) => `${i.product_name}x${i.quantity}`).join(" | "),
+  ]);
+  const csv = [CSV_HEADERS, ...rows]
+    .map((r) => r.map(csvEscape).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ventas-${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 function formatDate(date: Date): string {
   return date.toISOString().split("T")[0];
@@ -267,7 +310,7 @@ export default function HistoryPage() {
       {/* Day summary */}
       {!loading && count > 0 && (
         <div className="mb-4 rounded-lg border border-border-default bg-bg-surface px-4 py-3">
-          <div className="flex justify-between text-sm">
+          <div className="flex items-center justify-between text-sm">
             <span className="text-text-secondary">
               {count} venta{count !== 1 ? "s" : ""}
             </span>
@@ -275,7 +318,15 @@ export default function HistoryPage() {
               ${totalMxn.toFixed(2)} MXN
             </span>
           </div>
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => downloadSalesCsv(sales, dateStr)}
+              className="flex items-center gap-1 text-xs text-text-secondary transition-colors hover:text-accent"
+              aria-label="Exportar ventas del dia a CSV"
+            >
+              <Download size={12} />
+              Exportar CSV
+            </button>
             <span className="font-mono text-sm text-accent">
               {totalSats.toLocaleString()} sats
             </span>
