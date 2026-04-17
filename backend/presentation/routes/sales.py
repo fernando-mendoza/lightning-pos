@@ -19,6 +19,7 @@ class SaleResponse(BaseModel):
     total_mxn: float
     total_sats: int
     exchange_rate: float
+    payment_hash: str
     status: str
     created_at: str
     paid_at: str | None
@@ -34,6 +35,7 @@ async def get_sales(date: str = Query(pattern=r"^\d{4}-\d{2}-\d{2}$")):
             total_mxn=s.total_mxn,
             total_sats=s.total_sats,
             exchange_rate=s.exchange_rate,
+            payment_hash=s.payment_hash,
             status=s.status,
             created_at=s.created_at,
             paid_at=s.paid_at,
