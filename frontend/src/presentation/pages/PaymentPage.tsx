@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import QRCode from "react-qr-code";
+import { QRCodeSVG } from "qrcode.react";
 import { usePaymentStatus } from "../../application/hooks/usePaymentStatus";
 import { cart } from "../../application/store/cartStore";
 
@@ -72,7 +72,7 @@ export default function PaymentPage() {
       </p>
 
       <div className="rounded-xl bg-white p-4">
-        <QRCode
+        <QRCodeSVG
           value={bolt11.toUpperCase()}
           size={256}
           level="M"

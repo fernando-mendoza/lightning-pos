@@ -1,4 +1,4 @@
-const CACHE_NAME = "lpos-v4";
+const CACHE_NAME = "lpos-v6";
 const SHELL_URLS = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -21,6 +21,9 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+
+  // Ignore non-http(s) requests (chrome-extension://, about:, etc.)
+  if (!request.url.startsWith("http")) return;
 
   // Network-first for API calls
   if (request.url.includes("/api/") || request.url.includes("/ws/")) {
