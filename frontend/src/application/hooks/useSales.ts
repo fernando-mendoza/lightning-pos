@@ -32,8 +32,9 @@ export function useSales(date: string) {
     refresh();
   }, [refresh]);
 
-  const totalMxn = sales.reduce((s, sale) => s + sale.total_mxn, 0);
-  const totalSats = sales.reduce((s, sale) => s + sale.total_sats, 0);
+  const paid = sales.filter((s) => s.status === "paid");
+  const totalMxn = paid.reduce((s, sale) => s + sale.total_mxn, 0);
+  const totalSats = paid.reduce((s, sale) => s + sale.total_sats, 0);
 
-  return { sales, loading, error, totalMxn, totalSats, count: sales.length };
+  return { sales, loading, error, totalMxn, totalSats, count: paid.length };
 }

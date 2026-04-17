@@ -49,11 +49,21 @@ class SaleRepoSQLite(SaleRepository):
         await db.commit()
         return cursor.rowcount > 0
 
+    async def mark_canceled(self, payment_hash: str) -> bool:
+        db = await get_db()
+        cursor = await db.execute(
+            """UPDATE sales SET status = 'canceled'
+               WHERE payment_hash = ? AND status = 'pending'""",
+            (payment_hash,),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+
     async def list_by_date(self, date_str: str) -> list[Sale]:
         db = await get_db()
         cursor = await db.execute(
             """SELECT * FROM sales
-               WHERE date(created_at) = ? AND status = 'paid'
+               WHERE date(created_at) = ?
                ORDER BY created_at DESC""",
             (date_str,),
         )

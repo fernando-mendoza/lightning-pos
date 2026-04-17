@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 from application.get_exchange_rate import get_exchange_rate
 from application.create_invoice import create_invoice
+from application.cancel_sale import cancel_sale
 from infrastructure.exchange.bitso_client import BitsoClient
 from infrastructure.lnbits.lnbits_client import LNbitsClient
 from infrastructure.db.sale_repo_sqlite import SaleRepoSQLite
@@ -79,3 +80,14 @@ async def get_invoice_status(payment_hash: str):
     if not sale:
         raise HTTPException(status_code=404, detail="Invoice not found")
     return {"payment_hash": payment_hash, "status": sale.status}
+
+
+@router.post("/invoices/{payment_hash}/cancel")
+async def post_cancel_invoice(payment_hash: str):
+    ok = await cancel_sale(payment_hash, sale_repo)
+    if not ok:
+        raise HTTPException(
+            status_code=409,
+            detail="Sale cannot be canceled (not pending or not found)",
+        )
+    return {"payment_hash": payment_hash, "status": "canceled"}

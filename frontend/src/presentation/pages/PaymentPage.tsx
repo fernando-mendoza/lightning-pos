@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { usePaymentStatus } from "../../application/hooks/usePaymentStatus";
 import { cart } from "../../application/store/cartStore";
+import { api } from "../../infrastructure/api";
 
 export default function PaymentPage() {
   const [params] = useSearchParams();
@@ -16,10 +17,25 @@ export default function PaymentPage() {
   const saleId = params.get("sale") ?? "";
 
   const { confirmed } = usePaymentStatus(paymentHash);
+  const [canceling, setCanceling] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(() => {
     if (!expiresAt) return 300;
     return Math.max(0, expiresAt - Math.floor(Date.now() / 1000));
   });
+
+  const cancelSale = async (clearCart: boolean) => {
+    if (canceling || !paymentHash) return;
+    setCanceling(true);
+    try {
+      await api.invoices.cancel(paymentHash).catch(() => {
+        // sale may already be paid or expired server-side — ignore
+      });
+      if (clearCart) cart.clear();
+      navigate("/pos", { replace: true });
+    } finally {
+      setCanceling(false);
+    }
+  };
 
   // Countdown
   useEffect(() => {
@@ -58,10 +74,11 @@ export default function PaymentPage() {
   return (
     <div className="flex min-h-[calc(100dvh-64px)] flex-col items-center justify-center px-4">
       <button
-        onClick={() => navigate("/pos")}
-        className="mb-6 self-start text-sm text-text-secondary hover:text-text-primary"
+        onClick={() => cancelSale(false)}
+        disabled={canceling}
+        className="mb-6 self-start text-sm text-text-secondary hover:text-text-primary disabled:opacity-50"
       >
-        &larr; Cancelar
+        &larr; {canceling ? "Cancelando..." : "Cancelar"}
       </button>
 
       <p className="mb-1 font-mono text-2xl font-bold">
@@ -90,13 +107,11 @@ export default function PaymentPage() {
             Generar nuevo
           </button>
           <button
-            onClick={() => {
-              cart.clear();
-              navigate("/pos", { replace: true });
-            }}
-            className="block mx-auto text-xs text-text-secondary hover:text-text-primary"
+            onClick={() => cancelSale(true)}
+            disabled={canceling}
+            className="block mx-auto text-xs text-text-secondary hover:text-text-primary disabled:opacity-50"
           >
-            Cancelar venta
+            {canceling ? "Cancelando..." : "Cancelar venta"}
           </button>
         </div>
       ) : (

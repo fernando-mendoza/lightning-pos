@@ -88,6 +88,12 @@ function statusMeta(status: Sale["status"]) {
       return { label: "Pagada", dot: "bg-success", text: "text-success" };
     case "expired":
       return { label: "Expirada", dot: "bg-error", text: "text-error" };
+    case "canceled":
+      return {
+        label: "Cancelada",
+        dot: "bg-text-secondary",
+        text: "text-text-secondary",
+      };
     default:
       return { label: "Pendiente", dot: "bg-warning", text: "text-warning" };
   }

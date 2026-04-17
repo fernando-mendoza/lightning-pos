@@ -52,6 +52,11 @@ export const api = {
       request<{ payment_hash: string; status: string }>(
         `/invoices/${paymentHash}/status`
       ),
+    cancel: (paymentHash: string) =>
+      request<{ payment_hash: string; status: string }>(
+        `/invoices/${paymentHash}/cancel`,
+        { method: "POST" }
+      ),
   },
 };
 

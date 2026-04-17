@@ -24,7 +24,7 @@ export interface Sale {
   exchange_rate: number;
   payment_hash: string;
   bolt11: string;
-  status: "pending" | "paid" | "expired";
+  status: "pending" | "paid" | "expired" | "canceled";
   created_at: string;
   paid_at: string | null;
   items: SaleItem[];
