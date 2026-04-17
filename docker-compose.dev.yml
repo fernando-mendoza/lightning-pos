@@ -1,0 +1,51 @@
+# Overlay de desarrollo: agrega LNbits con FakeWallet al stack base.
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# Primer arranque:
+#   1. Abrir http://localhost:${LNBITS_PORT:-5001}
+#   2. Crear cuenta + wallet (click en "Add a new wallet")
+#   3. En la vista del wallet, copiar la "Admin key" (boton API info / ...)
+#   4. Editar .env:
+#        LPOS_LNBITS_API_KEY=<admin-key-del-wallet>
+#   5. docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d backend
+#
+# Simular pago (FakeWallet):
+#   - Desde otro wallet LNbits del mismo server, pegar el BOLT11 en "Pay invoice"
+#   - O via curl al endpoint admin: POST /api/v1/payments con {"out": true, "bolt11": "..."}
+#   - LNbits dispara el webhook POST http://backend:8000/api/webhooks/lnbits
+#   - El backend marca la venta como paid, notifica por WebSocket, UI muestra exito.
+
+services:
+  lnbits:
+    image: lnbits/lnbits:latest
+    container_name: lightning-pos-lnbits
+    restart: unless-stopped
+    environment:
+      LNBITS_DATA_FOLDER: /app/data
+      LNBITS_BACKEND_WALLET_CLASS: FakeWallet
+      LNBITS_SITE_TITLE: "LNbits Dev (FakeWallet)"
+      LNBITS_ADMIN_UI: "true"
+      LNBITS_ALLOW_NEW_ACCOUNTS: "true"
+      LNBITS_HOST: 0.0.0.0
+      LNBITS_PORT: "5000"
+      FAKE_WALLET_SECRET: ${FAKE_WALLET_SECRET:-dev-fake-wallet-secret-change-me}
+    volumes:
+      - lightning-pos-lnbits-data:/app/data
+    ports:
+      - "${LNBITS_PORT:-5001}:5000"
+    networks:
+      - lightning-pos-net
+
+  backend:
+    environment:
+      LPOS_LNBITS_URL: http://lnbits:5000
+      LPOS_WEBHOOK_BASE_URL: http://backend:8000
+    depends_on:
+      lnbits:
+        condition: service_started
+
+volumes:
+  lightning-pos-lnbits-data:
+    driver: local

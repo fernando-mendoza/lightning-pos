@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     lnbits_api_key: str = ""
     lnbits_webhook_secret: str = ""
 
+    # Base URL publica donde LNbits puede alcanzar a ESTE backend para webhooks.
+    # En docker-compose dev: http://backend:8000 (red interna).
+    # En produccion: el dominio publico del backend (ej: https://pos.dominio.com).
+    webhook_base_url: str = "http://localhost:8000"
+
     # Bitso
     bitso_api_url: str = "https://api.bitso.com/v3"
     exchange_rate_ttl: int = 45  # seconds

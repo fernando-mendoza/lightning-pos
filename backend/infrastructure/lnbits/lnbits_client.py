@@ -15,7 +15,7 @@ class LNbitsClient(LightningService):
                     "amount": amount_sats,
                     "memo": memo,
                     "expiry": settings.invoice_expiry,
-                    "webhook": f"{settings.lnbits_url}/api/webhooks/lnbits",
+                    "webhook": f"{settings.webhook_base_url}/api/webhooks/lnbits",
                 },
             )
             resp.raise_for_status()
