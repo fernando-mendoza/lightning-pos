@@ -1,4 +1,4 @@
-import { getToken } from "../application/hooks/useAuth";
+import { getToken, clearSessionAndReload } from "../application/hooks/useAuth";
 
 const BASE = "/api";
 
@@ -14,6 +14,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers["Authorization"] = `Bearer ${token}`;
   }
   const res = await fetch(`${BASE}${path}`, { ...init, headers });
+  if (res.status === 401 && token) {
+    clearSessionAndReload();
+    throw new Error("401: session expired");
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`${res.status}: ${body}`);

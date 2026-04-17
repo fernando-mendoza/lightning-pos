@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Sale } from "../../domain/types";
+import { getToken, clearSessionAndReload } from "./useAuth";
 
 export function useSales(date: string) {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -10,7 +11,14 @@ export function useSales(date: string) {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/sales?date=${date}`);
+      const token = getToken();
+      const res = await fetch(`/api/sales?date=${date}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.status === 401 && token) {
+        clearSessionAndReload();
+        return;
+      }
       if (!res.ok) throw new Error(`${res.status}`);
       setSales(await res.json());
     } catch (e) {

@@ -1,9 +1,34 @@
 import { useCallback, useEffect, useState } from "react";
 
-let _token: string | null = null;
+const TOKEN_STORAGE_KEY = "lpos.auth.token";
+
+function readStoredToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredToken(token: string | null): void {
+  try {
+    if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    else localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {
+    // noop: storage may be unavailable (private mode, disabled cookies)
+  }
+}
+
+let _token: string | null = readStoredToken();
 
 export function getToken(): string | null {
   return _token;
+}
+
+export function clearSessionAndReload(): void {
+  _token = null;
+  writeStoredToken(null);
+  if (typeof window !== "undefined") window.location.replace("/");
 }
 
 export function useAuth() {
@@ -36,6 +61,7 @@ export function useAuth() {
     if (!res.ok) return false;
     const data = await res.json();
     _token = data.token;
+    writeStoredToken(data.token);
     setToken(data.token);
     return true;
   };
@@ -53,6 +79,7 @@ export function useAuth() {
 
   const logout = () => {
     _token = null;
+    writeStoredToken(null);
     setToken(null);
   };
 
