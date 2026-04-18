@@ -74,9 +74,16 @@ async def _run_migrations(db: aiosqlite.Connection) -> None:
             value TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS auth_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            attempted_at INTEGER NOT NULL,
+            success INTEGER NOT NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_sales_status ON sales(status);
         CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
         CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
+        CREATE INDEX IF NOT EXISTS idx_auth_attempts_at ON auth_attempts(attempted_at);
     """)
 
     # Additive migrations (idempotent — only apply if column is missing)

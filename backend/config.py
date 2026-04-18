@@ -1,4 +1,8 @@
+import logging
+import secrets
 from pathlib import Path
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -26,11 +30,38 @@ class Settings(BaseSettings):
 
     # Auth
     pin_hash: str = ""
+    # Secret para firmar JWT. REQUERIDO en produccion.
+    # Generar con: openssl rand -hex 32
+    jwt_secret: str = ""
+    jwt_ttl_seconds: int = 60 * 60 * 24 * 30  # 30 dias
+    # Rate limit de verify-pin: max_pin_attempts fallidos en la ventana -> lockout.
+    max_pin_attempts: int = 5
+    pin_lockout_window_seconds: int = 15 * 60  # 15 minutos
+
+    # CORS: lista de origenes permitidos separados por coma.
+    # Dev: http://localhost:8080,http://localhost:8090
+    # Produccion: dominios explicitos del frontend.
+    allowed_origins: str = "http://localhost:8080,http://localhost:8090"
 
     # Invoice
     invoice_expiry: int = 300  # seconds
 
     model_config = {"env_file": ".env", "env_prefix": "LPOS_"}
+
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+
+    @model_validator(mode="after")
+    def _generate_jwt_secret_if_empty(self):
+        if not self.jwt_secret:
+            self.jwt_secret = secrets.token_hex(32)
+            logging.getLogger(__name__).warning(
+                "LPOS_JWT_SECRET no esta seteado. Se genero un secret efimero para "
+                "este boot; todos los tokens se invalidan al reiniciar. Para "
+                "produccion, setea LPOS_JWT_SECRET con: openssl rand -hex 32"
+            )
+        return self
 
 
 settings = Settings()

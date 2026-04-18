@@ -1,18 +1,36 @@
 import hashlib
-import secrets
+import time
 
+import jwt
+
+from config import settings
 from infrastructure.db.connection import get_db
 
-# In-memory token store (MVP — tokens survive until server restart)
-_active_tokens: set[str] = set()
+_JWT_ALGO = "HS256"
 
 
 def hash_pin(pin: str) -> str:
     return hashlib.sha256(pin.encode()).hexdigest()
 
 
+def issue_token() -> str:
+    now = int(time.time())
+    payload = {
+        "sub": "pos",
+        "iat": now,
+        "exp": now + settings.jwt_ttl_seconds,
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=_JWT_ALGO)
+
+
 def is_valid_token(token: str) -> bool:
-    return token in _active_tokens
+    if not token:
+        return False
+    try:
+        jwt.decode(token, settings.jwt_secret, algorithms=[_JWT_ALGO])
+        return True
+    except jwt.InvalidTokenError:
+        return False
 
 
 async def get_pin_hash() -> str | None:
@@ -39,10 +57,41 @@ async def verify_pin(pin: str) -> str | None:
         return None
     if hash_pin(pin) != stored:
         return None
-    token = secrets.token_hex(32)
-    _active_tokens.add(token)
-    return token
+    return issue_token()
 
 
 async def is_pin_set() -> bool:
     return await get_pin_hash() is not None
+
+
+async def check_pin_rate_limit() -> tuple[bool, int]:
+    """Sliding window: rechaza si hubo demasiados intentos fallidos recientes.
+    Devuelve (allowed, retry_after_seconds).
+    """
+    now = int(time.time())
+    cutoff = now - settings.pin_lockout_window_seconds
+    db = await get_db()
+    await db.execute("DELETE FROM auth_attempts WHERE attempted_at < ?", (cutoff,))
+    cursor = await db.execute(
+        "SELECT COUNT(*) AS c, MIN(attempted_at) AS m FROM auth_attempts WHERE success = 0"
+    )
+    row = await cursor.fetchone()
+    await db.commit()
+    count = row["c"] if row else 0
+    if count >= settings.max_pin_attempts:
+        oldest = row["m"]
+        retry_after = max(1, oldest + settings.pin_lockout_window_seconds - now)
+        return False, retry_after
+    return True, 0
+
+
+async def record_pin_attempt(success: bool) -> None:
+    db = await get_db()
+    await db.execute(
+        "INSERT INTO auth_attempts (attempted_at, success) VALUES (?, ?)",
+        (int(time.time()), 1 if success else 0),
+    )
+    if success:
+        # Limpiar fallos previos al loguear con exito
+        await db.execute("DELETE FROM auth_attempts WHERE success = 0")
+    await db.commit()

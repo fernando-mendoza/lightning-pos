@@ -1,7 +1,13 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from application.auth import verify_pin, set_pin, is_pin_set
+from application.auth import (
+    verify_pin,
+    set_pin,
+    is_pin_set,
+    check_pin_rate_limit,
+    record_pin_attempt,
+)
 
 router = APIRouter()
 
@@ -22,7 +28,15 @@ async def auth_status():
 
 @router.post("/verify-pin")
 async def post_verify_pin(body: PinRequest):
+    allowed, retry_after = await check_pin_rate_limit()
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiados intentos. Espera {retry_after}s.",
+            headers={"Retry-After": str(retry_after)},
+        )
     token = await verify_pin(body.pin)
+    await record_pin_attempt(success=bool(token))
     if not token:
         raise HTTPException(status_code=401, detail="Invalid PIN")
     return {"token": token}
@@ -44,7 +58,15 @@ class ChangePinRequest(BaseModel):
 
 @router.post("/change-pin")
 async def post_change_pin(body: ChangePinRequest):
+    allowed, retry_after = await check_pin_rate_limit()
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiados intentos. Espera {retry_after}s.",
+            headers={"Retry-After": str(retry_after)},
+        )
     token = await verify_pin(body.current_pin)
+    await record_pin_attempt(success=bool(token))
     if not token:
         raise HTTPException(status_code=401, detail="Current PIN is incorrect")
     await set_pin(body.new_pin)
