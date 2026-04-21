@@ -4,13 +4,22 @@ from pydantic import BaseModel, Field
 from application.get_exchange_rate import get_exchange_rate
 from application.create_invoice import create_invoice
 from application.cancel_sale import cancel_sale
-from infrastructure.exchange.bitso_client import BitsoClient
-from infrastructure.lnbits.lnbits_client import LNbitsClient
+from config import settings
 from infrastructure.db.sale_repo_sqlite import SaleRepoSQLite
 
 router = APIRouter()
-exchange_service = BitsoClient()
-lightning_service = LNbitsClient()
+
+if settings.test_mode:
+    from infrastructure.exchange.fake_exchange_client import FakeExchangeClient
+    from infrastructure.lnbits.fake_lightning_service import FakeLightningService
+    exchange_service = FakeExchangeClient()
+    lightning_service = FakeLightningService()
+else:
+    from infrastructure.exchange.bitso_client import BitsoClient
+    from infrastructure.lnbits.lnbits_client import LNbitsClient
+    exchange_service = BitsoClient()
+    lightning_service = LNbitsClient()
+
 sale_repo = SaleRepoSQLite()
 
 

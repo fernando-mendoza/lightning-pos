@@ -26,6 +26,8 @@ services:
       LPOS_DB_PATH: /tmp/lightning-pos-test.db
       LPOS_JWT_SECRET: test-jwt-secret-fixed-for-reproducibility
       LPOS_ALLOWED_ORIGINS: http://frontend,http://localhost:8080
+      # Activa fakes deterministas para Lightning y exchange rate.
+      LPOS_TEST_MODE: "1"
       # LNbits solo se conecta cuando el perfil lo levanta (Fase 2+)
       LPOS_LNBITS_URL: http://lnbits:5000
       LPOS_LNBITS_API_KEY: test-placeholder-api-key
@@ -79,6 +81,7 @@ services:
     container_name: lightning-pos-playwright
     environment:
       FRONTEND_URL: http://frontend
+      BACKEND_URL: http://backend:8000
     depends_on:
       frontend:
         condition: service_started

@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     # Invoice
     invoice_expiry: int = 300  # seconds
 
+    # Test mode: reemplaza LightningService y ExchangeRateService por fakes
+    # deterministicos. NUNCA activar en produccion.
+    test_mode: bool = False
+
     model_config = {"env_file": ".env", "env_prefix": "LPOS_"}
 
     @property
