@@ -38,6 +38,24 @@ uvicorn main:app --reload --port 8000
 cd frontend && npm install && npm run dev
 ```
 
+## Correr tests
+
+Todos los tests corren en Docker. No instalar pytest/playwright localmente.
+
+```bash
+# Tests de backend (pytest + httpx)
+docker compose -f docker-compose.test.yml run --rm --build backend-tests
+
+# Tests E2E de frontend (Playwright)
+docker compose -f docker-compose.test.yml run --rm --build playwright
+
+# Limpiar recursos
+docker compose -f docker-compose.test.yml down --volumes --remove-orphans
+```
+
+El `docker-compose.test.yml` es independiente del stack base; levanta su propio
+backend (+ frontend cuando aplica) con DB efimera y secretos fijos de test.
+
 ## Contexto del workspace
 
 Este proyecto se creo con el workspace `new-product-creation`.

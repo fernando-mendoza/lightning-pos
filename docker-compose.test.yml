@@ -1,0 +1,92 @@
+# Stack de tests automatizados (Docker-only).
+#
+# Uso (desde projects/lightning-pos/):
+#   # Solo tests de backend (pytest):
+#   docker compose -f docker-compose.test.yml run --rm --build backend-tests
+#
+#   # Solo tests E2E de frontend (Playwright):
+#   docker compose -f docker-compose.test.yml run --rm --build playwright
+#
+#   # Cleanup:
+#   docker compose -f docker-compose.test.yml down --volumes --remove-orphans
+#
+# Este archivo es independiente del docker-compose.yml principal: NO es overlay.
+# Levanta su propio backend y (cuando aplica) frontend con configuracion dedicada
+# a testing (DB efimera en /tmp, JWT secret fijo, rate limit alto, LNbits opcional).
+# Solo agrega LNbits en los perfiles que lo requieran (Fase 2+).
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: lightning-pos-backend:latest
+    container_name: lightning-pos-backend-test
+    environment:
+      LPOS_DB_PATH: /tmp/lightning-pos-test.db
+      LPOS_JWT_SECRET: test-jwt-secret-fixed-for-reproducibility
+      LPOS_ALLOWED_ORIGINS: http://frontend,http://localhost:8080
+      # LNbits solo se conecta cuando el perfil lo levanta (Fase 2+)
+      LPOS_LNBITS_URL: http://lnbits:5000
+      LPOS_LNBITS_API_KEY: test-placeholder-api-key
+      LPOS_WEBHOOK_BASE_URL: http://backend:8000
+      # Rate limit alto para no bloquear tests que ejercitan auth repetido
+      LPOS_MAX_PIN_ATTEMPTS: "1000"
+    expose:
+      - "8000"
+    networks:
+      - test-net
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 3s
+
+  backend-tests:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    image: lightning-pos-backend-tests:latest
+    container_name: lightning-pos-backend-tests
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - test-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: lightning-pos-frontend:latest
+    container_name: lightning-pos-frontend-test
+    depends_on:
+      backend:
+        condition: service_healthy
+    expose:
+      - "80"
+    networks:
+      - test-net
+
+  playwright:
+    build:
+      context: ./frontend/playwright
+      dockerfile: Dockerfile
+    image: lightning-pos-playwright:latest
+    container_name: lightning-pos-playwright
+    environment:
+      FRONTEND_URL: http://frontend
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    networks:
+      - test-net
+
+networks:
+  test-net:
+    driver: bridge
