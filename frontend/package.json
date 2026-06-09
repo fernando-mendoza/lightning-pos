@@ -1,8 +1,10 @@
 {
-  "name": "frontend",
+  "name": "lightning-pos-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
+  "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

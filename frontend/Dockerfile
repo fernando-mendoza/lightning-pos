@@ -2,13 +2,14 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-# npm install (no ci) porque el lockfile se mantiene desde macOS y no
-# incluye las deps optional Linux-only de @tailwindcss/oxide (@emnapi/*)
-RUN npm install --no-audit --prefer-offline --no-fund
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN pnpm build
 
 
 FROM nginx:1.27-alpine AS runtime

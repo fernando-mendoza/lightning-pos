@@ -35,7 +35,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 
 # Frontend
-cd frontend && npm install && npm run dev
+cd frontend && pnpm install && pnpm dev
 ```
 
 ## Correr tests
@@ -55,8 +55,3 @@ docker compose -f docker-compose.test.yml down --volumes --remove-orphans
 
 El `docker-compose.test.yml` es independiente del stack base; levanta su propio
 backend (+ frontend cuando aplica) con DB efimera y secretos fijos de test.
-
-## Contexto del workspace
-
-Este proyecto se creo con el workspace `new-product-creation`.
-Run: `workspaces/new-product-creation/runs/2026-04-16-lightning-pos/`
