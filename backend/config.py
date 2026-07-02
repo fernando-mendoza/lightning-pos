@@ -67,5 +67,15 @@ class Settings(BaseSettings):
             )
         return self
 
+    @model_validator(mode="after")
+    def _warn_if_webhook_secret_empty(self):
+        if not self.lnbits_webhook_secret and not self.test_mode:
+            logging.getLogger(__name__).warning(
+                "LPOS_LNBITS_WEBHOOK_SECRET no esta seteado. El endpoint de webhook "
+                "acepta requests sin autenticar (la verificacion contra LNbits sigue "
+                "activa). Para produccion, setealo con: openssl rand -hex 32"
+            )
+        return self
+
 
 settings = Settings()

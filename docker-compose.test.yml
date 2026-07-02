@@ -31,6 +31,7 @@ services:
       # LNbits solo se conecta cuando el perfil lo levanta (Fase 2+)
       LPOS_LNBITS_URL: http://lnbits:5000
       LPOS_LNBITS_API_KEY: test-placeholder-api-key
+      LPOS_LNBITS_WEBHOOK_SECRET: test-webhook-secret-fixed
       LPOS_WEBHOOK_BASE_URL: http://backend:8000
       # Rate limit alto para no bloquear tests que ejercitan auth repetido
       LPOS_MAX_PIN_ATTEMPTS: "1000"

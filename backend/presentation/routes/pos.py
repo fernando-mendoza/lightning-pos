@@ -4,21 +4,11 @@ from pydantic import BaseModel, Field
 from application.get_exchange_rate import get_exchange_rate
 from application.create_invoice import create_invoice
 from application.cancel_sale import cancel_sale
-from config import settings
+from application.confirm_payment import confirm_payment
 from infrastructure.db.sale_repo_sqlite import SaleRepoSQLite
+from infrastructure.providers import exchange_service, lightning_service
 
 router = APIRouter()
-
-if settings.test_mode:
-    from infrastructure.exchange.fake_exchange_client import FakeExchangeClient
-    from infrastructure.lnbits.fake_lightning_service import FakeLightningService
-    exchange_service = FakeExchangeClient()
-    lightning_service = FakeLightningService()
-else:
-    from infrastructure.exchange.bitso_client import BitsoClient
-    from infrastructure.lnbits.lnbits_client import LNbitsClient
-    exchange_service = BitsoClient()
-    lightning_service = LNbitsClient()
 
 sale_repo = SaleRepoSQLite()
 
@@ -101,6 +91,16 @@ async def get_invoice_status(payment_hash: str):
     sale = await sale_repo.get_by_payment_hash(payment_hash)
     if not sale:
         raise HTTPException(status_code=404, detail="Invoice not found")
+    # Reconciliacion: si el webhook de LNbits se perdio, el poll del frontend
+    # es el unico camino para detectar el pago — preguntar a LNbits directo.
+    if sale.status == "pending":
+        try:
+            paid = await lightning_service.check_invoice(payment_hash)
+        except Exception:
+            paid = False
+        if paid:
+            await confirm_payment(payment_hash, sale_repo)
+            sale = await sale_repo.get_by_payment_hash(payment_hash)
     return {"payment_hash": payment_hash, "status": sale.status}
 
 

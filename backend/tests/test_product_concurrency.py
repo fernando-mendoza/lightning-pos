@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 
 import pytest
 
+from tests.conftest import pay_invoice, post_webhook
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -78,9 +80,8 @@ async def test_sale_snapshot_immune_a_edit_posterior(client):
     assert invoice_resp.status_code == 201
     payment_hash = invoice_resp.json()["payment_hash"]
 
-    webhook = await client.post(
-        "/api/webhooks/lnbits", json={"payment_hash": payment_hash}
-    )
+    await pay_invoice(client, payment_hash)
+    webhook = await post_webhook(client, payment_hash)
     assert webhook.json()["status"] == "confirmed"
 
     edit_resp = await client.put(

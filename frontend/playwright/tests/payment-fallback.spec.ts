@@ -6,7 +6,8 @@ import { test, expect, request as apiRequest } from "@playwright/test";
 //   1. Hace setup del PIN y login via API.
 //   2. Crea un invoice real (test mode usa FakeLightningService).
 //   3. Abre la pagina de pago con un stub de WebSocket que nunca dispara eventos.
-//   4. POSTea el webhook de LNbits.
+//   4. Marca el invoice como pagado en el fake de LNbits SIN enviar el webhook
+//      (simula webhook perdido; el status endpoint reconcilia contra LNbits).
 //   5. Asserts que la pagina navega a /pos/confirmed dentro de 15s — el unico camino
 //      posible es el poll fallback (WS_FALLBACK_TIMEOUT_MS=8s + POLL_INTERVAL_MS=2s).
 
@@ -70,12 +71,14 @@ test("poll fallback detecta el pago cuando el WS no entrega", async ({ page }) =
   await page.goto(`/pos/pay?${params.toString()}`);
   await expect(page.getByText("Esperando pago...")).toBeVisible();
 
-  // LNbits "confirmo" el pago. Como el WS esta stubbeado, la unica manera de que
-  // la UI lo detecte es el poll fallback (arranca a los 8s del timer).
-  const webhookResp = await api.post("/api/webhooks/lnbits", {
-    data: { payment_hash: invoice.payment_hash },
-  });
-  expect(webhookResp.ok()).toBeTruthy();
+  // El cliente "pago" en LNbits pero el webhook se pierde. Como el WS esta
+  // stubbeado, la unica manera de que la UI lo detecte es el poll fallback
+  // (arranca a los 8s del timer) reconciliando contra LNbits.
+  const payResp = await api.post(
+    `/api/test/payments/${invoice.payment_hash}/pay`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  expect(payResp.ok()).toBeTruthy();
 
   // 8s del timer + hasta 2s del primer tick de poll ~= 10s. 20s de margen.
   await expect(page).toHaveURL(/\/pos\/confirmed/, { timeout: 20_000 });

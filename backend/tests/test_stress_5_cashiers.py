@@ -19,7 +19,7 @@ import time
 import httpx
 import pytest
 
-from tests.conftest import BACKEND_URL, TEST_PIN
+from tests.conftest import BACKEND_URL, TEST_PIN, pay_invoice, post_webhook
 
 pytestmark = pytest.mark.asyncio
 
@@ -117,9 +117,11 @@ async def test_5_concurrent_webhooks_no_corruption(client):
         assert resp.status_code == 201
         hashes.append(resp.json()["payment_hash"])
 
+    for h in hashes:
+        await pay_invoice(client, h)
+
     webhook_responses = await asyncio.gather(*[
-        client.post("/api/webhooks/lnbits", json={"payment_hash": h})
-        for h in hashes
+        post_webhook(client, h) for h in hashes
     ])
     for r in webhook_responses:
         assert r.status_code == 200

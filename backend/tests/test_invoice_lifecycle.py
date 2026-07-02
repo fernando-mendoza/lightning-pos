@@ -14,6 +14,8 @@ El cancel endpoint devuelve 409 para hashes inexistentes o no-pending
 """
 import pytest
 
+from tests.conftest import pay_invoice, post_webhook
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -53,9 +55,8 @@ async def test_cancel_sale_ya_canceled_retorna_409(client):
 async def test_cancel_sale_paid_retorna_409(client):
     hash_ = await _create_pending_sale(client)
 
-    webhook = await client.post(
-        "/api/webhooks/lnbits", json={"payment_hash": hash_}
-    )
+    await pay_invoice(client, hash_)
+    webhook = await post_webhook(client, hash_)
     assert webhook.json()["status"] == "confirmed"
 
     cancel = await client.post(f"/api/invoices/{hash_}/cancel")
@@ -78,9 +79,8 @@ async def test_webhook_tardio_sobre_canceled_no_revive(client):
     cancel = await client.post(f"/api/invoices/{hash_}/cancel")
     assert cancel.status_code == 200
 
-    webhook = await client.post(
-        "/api/webhooks/lnbits", json={"payment_hash": hash_}
-    )
+    await pay_invoice(client, hash_)
+    webhook = await post_webhook(client, hash_)
     assert webhook.status_code == 200
     assert webhook.json()["status"] == "ignored"
 

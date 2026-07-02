@@ -1,7 +1,16 @@
+from urllib.parse import quote
+
 import httpx
 
 from config import settings
 from domain.ports.lightning_service import LightningService, InvoiceResult
+
+
+def _webhook_url() -> str:
+    url = f"{settings.webhook_base_url}/api/webhooks/lnbits"
+    if settings.lnbits_webhook_secret:
+        url += f"?secret={quote(settings.lnbits_webhook_secret, safe='')}"
+    return url
 
 
 class LNbitsClient(LightningService):
@@ -15,7 +24,7 @@ class LNbitsClient(LightningService):
                     "amount": amount_sats,
                     "memo": memo,
                     "expiry": settings.invoice_expiry,
-                    "webhook": f"{settings.webhook_base_url}/api/webhooks/lnbits",
+                    "webhook": _webhook_url(),
                 },
             )
             resp.raise_for_status()
