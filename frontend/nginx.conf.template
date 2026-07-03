@@ -1,6 +1,12 @@
-upstream backend_upstream {
-    server backend:8000;
-}
+# Template procesado por envsubst al arrancar el container (feature estandar
+# de la imagen oficial de nginx: /etc/nginx/templates/*.template).
+# Solo se sustituyen variables DEFINIDAS en el environment (ej. ${BACKEND_ORIGIN});
+# las variables de runtime de nginx ($host, $uri, ...) quedan intactas.
+#
+# BACKEND_ORIGIN:
+#   - docker-compose local: http://backend:8000 (default en el Dockerfile)
+#   - Railway: https://<dominio-publico-del-backend> (el proxy sale por TLS;
+#     proxy_ssl_server_name se ignora cuando el upstream es http)
 
 server {
     listen 80;
@@ -43,9 +49,11 @@ server {
 
     # API reverse proxy
     location /api/ {
-        proxy_pass http://backend_upstream;
+        proxy_pass ${BACKEND_ORIGIN};
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        # Host = host del upstream: Railway rutea por Host header
+        proxy_set_header Host $proxy_host;
+        proxy_ssl_server_name on;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -54,11 +62,12 @@ server {
 
     # WebSocket reverse proxy for payment confirmations
     location /ws/ {
-        proxy_pass http://backend_upstream;
+        proxy_pass ${BACKEND_ORIGIN};
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
+        proxy_set_header Host $proxy_host;
+        proxy_ssl_server_name on;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_read_timeout 3600s;

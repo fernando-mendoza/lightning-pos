@@ -14,8 +14,12 @@ RUN pnpm build
 
 FROM nginx:1.27-alpine AS runtime
 
+# Upstream del proxy /api y /ws. Override en Railway con el dominio publico
+# del backend (https://...); el default sirve para docker-compose local.
+ENV BACKEND_ORIGIN=http://backend:8000
+
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
 EXPOSE 80
 
