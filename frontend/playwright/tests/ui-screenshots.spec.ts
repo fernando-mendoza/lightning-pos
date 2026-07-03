@@ -74,6 +74,27 @@ test("app shell: sin scroll de documento y nav visible en toda pagina", async ({
         `nav fuera del viewport en ${path} @${vp.name}`
       ).toBeLessThanOrEqual(vp.height + 1);
 
+      // 3. Branding "Powered by AgentykCo" en el header (toda pagina, todo
+      //    viewport) y en el nav (solo desktop; en movil esta oculto).
+      await expect(
+        page.locator("header").getByText("Powered by AgentykCo"),
+        `branding de header ausente en ${path} @${vp.name}`
+      ).toBeVisible();
+      const navBranding = page
+        .locator("nav")
+        .getByText("Powered by AgentykCo");
+      if (vp.name === "desktop") {
+        await expect(
+          navBranding,
+          `branding de nav ausente en ${path} @${vp.name}`
+        ).toBeVisible();
+      } else {
+        await expect(
+          navBranding,
+          `branding de nav deberia estar oculto en ${path} @${vp.name}`
+        ).toBeHidden();
+      }
+
       await page
         .screenshot({
           path: `/shots/${path.replace("/", "")}-${vp.name}.png`,
@@ -82,9 +103,9 @@ test("app shell: sin scroll de documento y nav visible en toda pagina", async ({
         .catch(() => {});
     }
 
-    // Branding presente en dashboard
+    // Footer "Made with ... by AgentykCo" presente en dashboard
     await page.goto("/dashboard");
-    await page.getByText("AgentykCo").waitFor();
+    await page.getByText("Made with").waitFor();
     await ctx.close();
 
     // Login (sin token) con branding
