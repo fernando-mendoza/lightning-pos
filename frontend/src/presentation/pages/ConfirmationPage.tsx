@@ -16,7 +16,7 @@ export default function ConfirmationPage() {
   }, [navigate]);
 
   return (
-    <div className="flex min-h-[calc(100dvh-64px)] flex-col items-center justify-center px-4">
+    <div className="flex min-h-full flex-col items-center justify-center px-4">
       <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-success/20 animate-[scale-in_0.3s_ease-out]">
         <Check size={40} className="text-success" />
       </div>

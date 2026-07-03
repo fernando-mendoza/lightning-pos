@@ -19,7 +19,9 @@ const navItems = [
 
 export default function AppLayout() {
   return (
-    <div className="flex min-h-dvh flex-col bg-bg-primary">
+    // App shell de altura fija: header y nav siempre visibles; el scroll vive
+    // DENTRO de <main>. Ninguna pagina puede empujar el nav fuera del viewport.
+    <div className="flex h-dvh flex-col bg-bg-primary">
       <header className="border-b border-border-default bg-bg-surface px-4 py-2.5">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
           <h1 className="text-sm font-bold tracking-wide">
@@ -36,8 +38,8 @@ export default function AppLayout() {
         </div>
       </header>
 
-      <main className="flex-1 p-4 md:p-6">
-        <div className="mx-auto w-full max-w-5xl">
+      <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="mx-auto h-full w-full max-w-5xl">
           <Outlet />
         </div>
       </main>

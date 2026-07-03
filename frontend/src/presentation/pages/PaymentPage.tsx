@@ -72,7 +72,7 @@ export default function PaymentPage() {
   const expired = secondsLeft <= 0;
 
   return (
-    <div className="flex min-h-[calc(100dvh-64px)] flex-col items-center justify-center px-4">
+    <div className="flex min-h-full flex-col items-center justify-center px-4">
       <button
         onClick={() => cancelSale(false)}
         disabled={canceling}

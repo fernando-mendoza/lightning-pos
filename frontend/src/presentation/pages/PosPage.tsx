@@ -27,7 +27,7 @@ export default function PosPage() {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-64px)] flex-col md:flex-row md:gap-4">
+    <div className="flex h-full flex-col md:flex-row md:gap-4">
       {/* Product grid */}
       <div className="flex-1 overflow-y-auto">
         <div className="mb-3 flex items-center justify-between">
