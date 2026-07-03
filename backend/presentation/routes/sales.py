@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
+from application.expire_sales import expire_stale_sales
 from infrastructure.db.sale_repo_sqlite import SaleRepoSQLite
 
 router = APIRouter()
@@ -30,6 +31,9 @@ class SaleResponse(BaseModel):
 
 @router.get("", response_model=list[SaleResponse])
 async def get_sales(date: str = Query(pattern=r"^\d{4}-\d{2}-\d{2}$")):
+    # Expiracion lazy: un invoice Lightning vencido ya no puede pagarse;
+    # sin esto las ventas pending quedaban "Pendiente" para siempre.
+    await expire_stale_sales(sale_repo)
     sales = await sale_repo.list_by_date(date)
     return [
         SaleResponse(

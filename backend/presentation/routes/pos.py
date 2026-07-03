@@ -5,6 +5,7 @@ from application.get_exchange_rate import get_exchange_rate
 from application.create_invoice import create_invoice
 from application.cancel_sale import cancel_sale
 from application.confirm_payment import confirm_payment
+from application.expire_sales import is_past_expiry
 from infrastructure.db.sale_repo_sqlite import SaleRepoSQLite
 from infrastructure.providers import exchange_service, lightning_service
 
@@ -100,6 +101,10 @@ async def get_invoice_status(payment_hash: str):
             paid = False
         if paid:
             await confirm_payment(payment_hash, sale_repo)
+            sale = await sale_repo.get_by_payment_hash(payment_hash)
+        elif is_past_expiry(sale.created_at):
+            # Invoice vencido y sin pago registrado en LNbits: no es pagable.
+            await sale_repo.mark_expired(payment_hash)
             sale = await sale_repo.get_by_payment_hash(payment_hash)
     return {"payment_hash": payment_hash, "status": sale.status}
 

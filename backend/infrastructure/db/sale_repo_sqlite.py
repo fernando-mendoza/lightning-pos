@@ -61,6 +61,26 @@ class SaleRepoSQLite(SaleRepository):
         await db.commit()
         return cursor.rowcount > 0
 
+    async def mark_expired(self, payment_hash: str) -> bool:
+        db = await get_db()
+        cursor = await db.execute(
+            """UPDATE sales SET status = 'expired'
+               WHERE payment_hash = ? AND status = 'pending'""",
+            (payment_hash,),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+
+    async def expire_stale(self, cutoff_iso: str) -> int:
+        db = await get_db()
+        cursor = await db.execute(
+            """UPDATE sales SET status = 'expired'
+               WHERE status = 'pending' AND created_at < ?""",
+            (cutoff_iso,),
+        )
+        await db.commit()
+        return cursor.rowcount
+
     async def summary_by_day(
         self, start_date: str, end_date: str
     ) -> list[dict]:
