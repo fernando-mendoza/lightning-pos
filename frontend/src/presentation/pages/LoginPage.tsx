@@ -1,5 +1,6 @@
 import { useAuth } from "../../application/hooks/useAuth";
 import PinPad from "../components/PinPad";
+import BrandingFooter from "../components/BrandingFooter";
 
 interface Props {
   onAuthenticated: () => void;
@@ -17,7 +18,7 @@ export default function LoginPage({ onAuthenticated }: Props) {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-bg-primary">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-bg-primary">
       {pinSet ? (
         <PinPad
           title="Lightning POS"
@@ -39,6 +40,7 @@ export default function LoginPage({ onAuthenticated }: Props) {
           }}
         />
       )}
+      <BrandingFooter />
     </div>
   );
 }

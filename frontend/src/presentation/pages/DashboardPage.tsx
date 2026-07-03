@@ -1,5 +1,6 @@
 import { useDashboard } from "../../application/hooks/useDashboard";
 import type { DailyEntry } from "../../application/hooks/useDashboard";
+import BrandingFooter from "../components/BrandingFooter";
 
 function shortDayLabel(isoDate: string): string {
   const d = new Date(isoDate + "T00:00:00");
@@ -22,65 +23,56 @@ interface BarChartProps {
 function SalesBarChart({ data }: BarChartProps) {
   const max = Math.max(1, ...data.map((d) => d.total_mxn));
   const todayIso = new Date().toISOString().slice(0, 10);
-  const barWidth = 36;
-  const barGap = 16;
-  const chartHeight = 120;
-  const labelHeight = 34;
-  const width = data.length * barWidth + (data.length - 1) * barGap;
-  const height = chartHeight + labelHeight;
 
+  // Columnas fluidas (flex-1) en vez de SVG de ancho fijo: el chart ocupa el
+  // ancho disponible en cualquier viewport sin encogerse ni distorsionar texto.
   return (
-    <svg
-      role="img"
-      aria-label="Ventas por dia ultimos 7 dias"
-      viewBox={`0 0 ${width} ${height}`}
-      className="h-40 w-full"
-      preserveAspectRatio="xMidYMax meet"
-    >
-      {data.map((d, i) => {
-        const x = i * (barWidth + barGap);
-        const barH = d.total_mxn > 0 ? (d.total_mxn / max) * chartHeight : 2;
-        const y = chartHeight - barH;
-        const isToday = d.date === todayIso;
-        const isEmpty = d.total_mxn === 0;
-        return (
-          <g key={d.date}>
-            <rect
-              x={x}
-              y={y}
-              width={barWidth}
-              height={barH}
-              rx={3}
-              className={
-                isEmpty
-                  ? "fill-border-default"
-                  : isToday
-                    ? "fill-accent"
-                    : "fill-success"
-              }
-            />
-            <text
-              x={x + barWidth / 2}
-              y={chartHeight + 14}
-              textAnchor="middle"
-              className="fill-text-secondary text-[10px]"
+    <div role="img" aria-label="Ventas por dia, ultimos 7 dias">
+      <div className="flex h-32 items-end gap-2 sm:gap-4">
+        {data.map((d) => {
+          const isToday = d.date === todayIso;
+          const isEmpty = d.total_mxn === 0;
+          const heightPct = isEmpty ? 0 : (d.total_mxn / max) * 100;
+          return (
+            <div
+              key={d.date}
+              className="flex h-full flex-1 items-end justify-center"
+              title={`${d.date}: ${formatMxn(d.total_mxn)}`}
             >
-              {shortDayLabel(d.date).toUpperCase()}
-            </text>
-            <text
-              x={x + barWidth / 2}
-              y={chartHeight + 28}
-              textAnchor="middle"
-              className={`text-[10px] ${
-                isToday ? "fill-accent" : "fill-text-secondary"
-              }`}
-            >
-              {dayNumber(d.date)}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+              <div
+                className={`w-full max-w-10 rounded-t-sm ${
+                  isEmpty
+                    ? "bg-border-default"
+                    : isToday
+                      ? "bg-accent"
+                      : "bg-success"
+                }`}
+                style={{ height: isEmpty ? "2px" : `${heightPct}%`, minHeight: "2px" }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 flex gap-2 sm:gap-4">
+        {data.map((d) => {
+          const isToday = d.date === todayIso;
+          return (
+            <div key={d.date} className="flex-1 text-center">
+              <p className="text-[10px] uppercase text-text-secondary">
+                {shortDayLabel(d.date)}
+              </p>
+              <p
+                className={`text-[10px] ${
+                  isToday ? "text-accent" : "text-text-secondary"
+                }`}
+              >
+                {dayNumber(d.date)}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -178,6 +170,8 @@ export default function DashboardPage() {
           </ol>
         )}
       </section>
+
+      <BrandingFooter />
     </div>
   );
 }
