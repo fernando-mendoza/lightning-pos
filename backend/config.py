@@ -11,8 +11,16 @@ class Settings(BaseSettings):
     app_name: str = "Lightning POS"
     debug: bool = False
 
-    # Database
+    # Database (legacy SQLite; se mantiene durante la transición a Postgres)
     db_path: str = str(Path(__file__).parent / "data" / "lightning-pos.db")
+
+    # Postgres (Fase 0 multi-tenant). Dev: docker Postgres en el puerto 5433.
+    # Prod: DATABASE_URL de Railway (formato postgresql+asyncpg://...).
+    database_url: str = "postgresql+asyncpg://lpos:dev@localhost:5433/lightning_pos"
+
+    # Clave para encriptar at-rest las llaves LNbits por tenant (AES-GCM, enc:v1:).
+    # REQUERIDA en producción. Generar: openssl rand -hex 32
+    data_encryption_key: str = ""
 
     # LNbits
     lnbits_url: str = "http://localhost:5000"
