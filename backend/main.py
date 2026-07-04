@@ -8,6 +8,7 @@ from infrastructure.db.connection import init_db, close_db
 from infrastructure.ws.manager import ws_manager
 from presentation.middleware.pin_auth import PinAuthMiddleware
 from presentation.routes import products, pos, sales, webhooks, auth, dashboard, testing
+from presentation.multitenant import accounts as mt_accounts, pairing as mt_pairing
 
 
 @asynccontextmanager
@@ -34,6 +35,10 @@ app.include_router(pos.router, prefix="/api", tags=["pos"])
 app.include_router(sales.router, prefix="/api/sales", tags=["sales"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
+
+# API multi-tenant (Fase 0). Auth propia (JWT usuario / device token); exenta del PIN middleware.
+app.include_router(mt_accounts.router, prefix="/api/v2", tags=["v2-accounts"])
+app.include_router(mt_pairing.router, prefix="/api/v2", tags=["v2-pairing"])
 
 if settings.test_mode:
     app.include_router(testing.router, prefix="/api/test", tags=["testing"])

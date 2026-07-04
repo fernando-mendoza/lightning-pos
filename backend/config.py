@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     # Prod: DATABASE_URL de Railway (formato postgresql+asyncpg://...).
     database_url: str = "postgresql+asyncpg://lpos:dev@localhost:5433/lightning_pos"
 
+    # URL pública del backend que la app usa (va en el QR de pairing).
+    public_base_url: str = "http://localhost:8000"
+    # Vida del código de pairing (segundos).
+    pairing_code_ttl_seconds: int = 90
+
     # Clave para encriptar at-rest las llaves LNbits por tenant (AES-GCM, enc:v1:).
     # REQUERIDA en producción. Generar: openssl rand -hex 32
     data_encryption_key: str = ""

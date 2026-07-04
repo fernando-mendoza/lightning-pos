@@ -4,8 +4,9 @@ from starlette.responses import JSONResponse
 
 from application.auth import is_pin_set, is_valid_token
 
-# Routes that don't require auth
-PUBLIC_PREFIXES = ("/api/auth/", "/api/health", "/api/webhooks/")
+# Routes that don't require PIN auth. El API multi-tenant (/api/v2) tiene su propia
+# autenticación (JWT de usuario / device token) vía dependencies, así que se exenta aquí.
+PUBLIC_PREFIXES = ("/api/auth/", "/api/health", "/api/webhooks/", "/api/v2/")
 
 
 class PinAuthMiddleware(BaseHTTPMiddleware):
