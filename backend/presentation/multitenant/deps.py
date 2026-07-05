@@ -28,13 +28,17 @@ from infrastructure.db.models import (
     TerminalStatus,
     User,
 )
-from infrastructure.providers import wallet_provider
+from infrastructure.providers import exchange_service, wallet_provider
 from infrastructure.security import jwt_tokens
 from infrastructure.security.tokens import hash_token
 
 
 def get_wallet():
     return wallet_provider
+
+
+def get_exchange():
+    return exchange_service
 
 
 def _bearer(authorization: str | None) -> str:
