@@ -1,0 +1,86 @@
+# Stack de tests del API multi-tenant (Fase 0) — Docker-only, con Postgres.
+#
+# Uso (desde projects/lightning-pos/):
+#   docker compose -f docker-compose.test-mt.yml run --rm --build backend-tests
+#   docker compose -f docker-compose.test-mt.yml down --volumes --remove-orphans
+#
+# Levanta Postgres efímero, corre las migraciones Alembic (servicio one-shot `migrate`),
+# arranca el backend en TEST_MODE (wallet/exchange fakes) y ejecuta los tests /api/v2.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lpos
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: lightning_pos_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lpos -d lightning_pos_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks:
+      - test-net
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: lightning-pos-backend:latest
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      LPOS_DATABASE_URL: postgresql+asyncpg://lpos:test@postgres:5432/lightning_pos_test
+      LPOS_JWT_SECRET: test-jwt-secret-fixed
+      LPOS_DATA_ENCRYPTION_KEY: test-data-encryption-key-fixed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - test-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: lightning-pos-backend:latest
+    environment:
+      LPOS_TEST_MODE: "1"
+      LPOS_DATABASE_URL: postgresql+asyncpg://lpos:test@postgres:5432/lightning_pos_test
+      LPOS_JWT_SECRET: test-jwt-secret-fixed
+      LPOS_DATA_ENCRYPTION_KEY: test-data-encryption-key-fixed
+      LPOS_PUBLIC_BASE_URL: http://backend:8000
+      LPOS_ALLOWED_ORIGINS: http://localhost
+      LPOS_MAX_PIN_ATTEMPTS: "1000"
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 3s
+    networks:
+      - test-net
+
+  backend-tests:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    image: lightning-pos-backend-tests:latest
+    command: ["pytest", "-v", "-s", "tests/test_mt_pairing.py", "tests/test_mt_orders.py"]
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - test-net
+
+networks:
+  test-net:
+    driver: bridge
