@@ -4,6 +4,38 @@
 backend multi-tenant se despliega como un **servicio/entorno SEPARADO** (staging) con su
 propia base Postgres. El single-tenant sigue intacto hasta el cutover.
 
+## ✅ Staging EN VIVO (2026-07-05)
+
+- **URL:** https://backend-production-ec13.up.railway.app · health `/api/health` → 200.
+- **Proyecto Railway:** `lightning-pos-mt-staging` (`cf08c123-…`), cuenta
+  `lghntwrk1@mundial2026cdmx.tours` (**aislada** del proyecto de prod). Servicios: `backend`
+  + `Postgres--GA0`.
+- **Modo:** `LPOS_TEST_MODE=1` → wallet/exchange **fake** (staging seguro, sin tocar LNbits
+  real ni fondos). Contrato OpenAPI servido en `/openapi.json`.
+- **Verificado:** suite pytest (8/8) corrida **contra la URL de staging** + seed del tenant #0
+  (`owner@lightningnetwork.tf`).
+- **Para producción real:** quitar `LPOS_TEST_MODE`, setear `LPOS_LNBITS_URL` +
+  `LPOS_BITSO_API_URL`, y re-desplegar (usa LNbits/Bitso reales).
+
+### Config real usada (artefactos en el repo)
+
+- `railway.json`: `build.builder=DOCKERFILE`; **`deploy.preDeployCommand="alembic upgrade
+  head"`** (migra antes de arrancar); **`deploy.startCommand="sh start.sh"`**.
+- `start.sh`: `exec uvicorn main:app --host 0.0.0.0 --port "${PORT:-8000}"`.
+- Variable `PORT=8000`.
+
+### Gotchas de Railway (aprendidos)
+
+1. **El `startCommand` se ejecuta como argv, SIN shell** → `$PORT`/`${PORT:-8000}` NO se
+   expanden (uvicorn crashea con "not a valid integer"). Solución: arrancar vía un script
+   (`sh start.sh`) donde el shell sí expande `$PORT`.
+2. Setear `PORT=8000` para que app y proxy coincidan (además del fallback en `start.sh`).
+3. Migraciones: usar `preDeployCommand` (logs limpios y falla el deploy si la migración falla),
+   no encadenarlas en el `startCommand`.
+4. `LPOS_DATABASE_URL` por **referencia** a Postgres, convertida a asyncpg:
+   `postgresql+asyncpg://${{Postgres--GA0.PGUSER}}:${{Postgres--GA0.PGPASSWORD}}@${{Postgres--GA0.RAILWAY_PRIVATE_DOMAIN}}:5432/${{Postgres--GA0.PGDATABASE}}`.
+5. Logs de runtime: `railway logs -d` (los de build son el default).
+
 ## Requisitos
 
 - `RAILWAY_TOKEN` (no está en el entorno del asistente → lo provee el owner o corre el deploy).

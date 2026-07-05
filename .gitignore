@@ -32,3 +32,6 @@ Thumbs.db
 
 # Deploy credentials (nunca commitear)
 .env.deploy
+.env.staging.secrets
+*.secrets
+.railway/
