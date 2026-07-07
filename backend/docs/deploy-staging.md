@@ -4,12 +4,24 @@
 backend multi-tenant se despliega como un **servicio/entorno SEPARADO** (staging) con su
 propia base Postgres. El single-tenant sigue intacto hasta el cutover.
 
-## ✅ Staging EN VIVO (2026-07-05)
+## ✅ Staging EN VIVO (2026-07-05; F1 + dashboard 2026-07-06)
 
-- **URL:** https://backend-production-ec13.up.railway.app · health `/api/health` → 200.
+- **Backend:** https://backend-production-ec13.up.railway.app · health `/api/health` → 200.
+  Desde 2026-07-06 corre **F1** (admin v2 + rate limiting; 22 rutas /api/v2).
+- **Dashboard manager:** https://frontend-production-6349.up.railway.app/admin
+  (servicio `frontend`: nginx de `frontend/Dockerfile`, `BACKEND_ORIGIN` → backend staging,
+  domain con `--port 80` — recién creado nace `targetPort null` ⇒ 502).
 - **Proyecto Railway:** `lightning-pos-mt-staging` (`cf08c123-…`), cuenta
-  `lghntwrk1@mundial2026cdmx.tours` (**aislada** del proyecto de prod). Servicios: `backend`
-  + `Postgres--GA0`.
+  `lghntwrk1@mundial2026cdmx.tours` (misma cuenta que prod, **proyecto** separado).
+  Servicios: `backend` + `Postgres--GA0` + `frontend`.
+
+### ⚠️ Gotcha CLI: el link de Railway es POR DIRECTORIO
+
+`railway up` despliega al proyecto/servicio linkeado al **directorio actual**
+(`~/.railway`). `frontend/` del repo quedó linkeado al proyecto **prod** desde
+julio-02; `backend/` al staging. **SIEMPRE `railway status` antes de `railway up`.**
+Para desplegar el frontend a staging usar una copia aparte linkeada a staging
+(incidente 2026-07-06: un `railway up` desde `frontend/` cayó en prod).
 - **Modo:** `LPOS_TEST_MODE=1` → wallet/exchange **fake** (staging seguro, sin tocar LNbits
   real ni fondos). Contrato OpenAPI servido en `/openapi.json`.
 - **Verificado:** suite pytest (8/8) corrida **contra la URL de staging** + seed del tenant #0
