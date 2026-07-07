@@ -52,6 +52,9 @@ services:
       dockerfile: Dockerfile.test
     image: lightning-pos-backend-tests:latest
     container_name: lightning-pos-backend-tests
+    # Solo los tests del path single-tenant + unit tests puros; los test_mt_*
+    # necesitan Postgres y corren en docker-compose.test-mt.yml.
+    command: ["pytest", "-v", "-s", "--ignore=tests/test_mt_pairing.py", "--ignore=tests/test_mt_orders.py", "--ignore=tests/test_mt_admin.py"]
     environment:
       BACKEND_URL: http://backend:8000
     depends_on:
