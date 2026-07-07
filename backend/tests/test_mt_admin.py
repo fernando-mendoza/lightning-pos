@@ -79,6 +79,23 @@ def test_manager_cannot_create_manager():
     assert r.status_code == 403
 
 
+def test_manager_catalog_listing():
+    c = new_client()
+    a = register(c)
+    dev, dhdr = pair(c, a["hdr"])
+    pid = c.post(BASE + "/catalog/products", headers=a["hdr"],
+                 json={"name": "Cafe", "price_mxn": "50.00"}).json()["id"]
+    c.delete(BASE + f"/catalog/products/{pid}", headers=a["hdr"])  # soft-delete
+    # el listado manager ve el inactivo si lo pide; el default no
+    r = c.get(BASE + "/catalog/manager/products", headers=a["hdr"],
+              params={"include_inactive": "true"})
+    assert r.status_code == 200 and len(r.json()) == 1 and r.json()[0]["active"] is False
+    r = c.get(BASE + "/catalog/manager/products", headers=a["hdr"])
+    assert r.status_code == 200 and r.json() == []
+    # el device token NO sirve en la ruta manager
+    assert c.get(BASE + "/catalog/manager/products", headers=dhdr).status_code == 401
+
+
 def test_tenant_and_terminal_rename():
     c = new_client()
     a = register(c, "Cafe Viejo")

@@ -1,7 +1,8 @@
-# Stack de tests del API multi-tenant (Fase 0) — Docker-only, con Postgres.
+# Stack de tests del API multi-tenant — Docker-only, con Postgres.
 #
 # Uso (desde projects/lightning-pos/):
 #   docker compose -f docker-compose.test-mt.yml run --rm --build backend-tests
+#   docker compose -f docker-compose.test-mt.yml run --rm --build playwright   # E2E dashboard /admin
 #   docker compose -f docker-compose.test-mt.yml down --volumes --remove-orphans
 #
 # Levanta Postgres efímero, corre las migraciones Alembic (servicio one-shot `migrate`),
@@ -76,6 +77,38 @@ services:
     environment:
       BACKEND_URL: http://backend:8000
     depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - test-net
+
+  # E2E del dashboard /admin (mismos contenedores frontend/playwright que la suite v1;
+  # aquí el backend es el multi-tenant, así que admin-dashboard.spec.ts NO se salta).
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: lightning-pos-frontend:latest
+    depends_on:
+      backend:
+        condition: service_healthy
+    expose:
+      - "80"
+    networks:
+      - test-net
+
+  playwright:
+    build:
+      context: ./frontend/playwright
+      dockerfile: Dockerfile
+    image: lightning-pos-playwright:latest
+    command: ["pnpm", "exec", "playwright", "test", "tests/admin-dashboard.spec.ts"]
+    environment:
+      FRONTEND_URL: http://frontend
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      frontend:
+        condition: service_started
       backend:
         condition: service_healthy
     networks:

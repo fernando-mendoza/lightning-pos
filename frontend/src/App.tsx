@@ -9,9 +9,35 @@ import LoginPage from "./presentation/pages/LoginPage";
 import PaymentPage from "./presentation/pages/PaymentPage";
 import ConfirmationPage from "./presentation/pages/ConfirmationPage";
 import DashboardPage from "./presentation/pages/DashboardPage";
+import AdminLayout from "./presentation/layouts/AdminLayout";
+import AdminLoginPage from "./presentation/pages/admin/AdminLoginPage";
+import AdminReportsPage from "./presentation/pages/admin/AdminReportsPage";
+import AdminCatalogPage from "./presentation/pages/admin/AdminCatalogPage";
+import AdminTerminalsPage from "./presentation/pages/admin/AdminTerminalsPage";
+import AdminMembersPage from "./presentation/pages/admin/AdminMembersPage";
+import AdminSettingsPage from "./presentation/pages/admin/AdminSettingsPage";
 
 export default function App() {
   const { authenticated, pinSet, loading } = useAuth();
+
+  // El área /admin (multi-tenant, JWT propio) vive fuera del gate de PIN del POS v1.
+  if (window.location.pathname.startsWith("/admin")) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminReportsPage />} />
+            <Route path="catalogo" element={<AdminCatalogPage />} />
+            <Route path="terminales" element={<AdminTerminalsPage />} />
+            <Route path="miembros" element={<AdminMembersPage />} />
+            <Route path="ajustes" element={<AdminSettingsPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
 
   if (loading) {
     return (

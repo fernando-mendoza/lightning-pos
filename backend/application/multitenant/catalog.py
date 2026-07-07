@@ -48,8 +48,11 @@ async def list_products(
     query: str | None = None,
     barcode: str | None = None,
     limit: int = 50,
+    include_inactive: bool = False,
 ) -> list[Product]:
-    stmt = select(Product).where(Product.tenant_id == tenant_id, Product.active.is_(True))
+    stmt = select(Product).where(Product.tenant_id == tenant_id)
+    if not include_inactive:
+        stmt = stmt.where(Product.active.is_(True))
     if barcode:
         stmt = stmt.where(Product.barcode == barcode)
     if query:

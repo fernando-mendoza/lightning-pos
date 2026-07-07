@@ -84,6 +84,25 @@ async def list_catalog(
     return [_out(p) for p in products]
 
 
+# ---- manager (JWT): listado para el dashboard (incluye inactivos si se pide) ----
+@router.get("/catalog/manager/products", response_model=list[ProductOut])
+async def list_catalog_manager(
+    query: str | None = None,
+    include_inactive: bool = False,
+    limit: int = 200,
+    cu: CurrentUser = Depends(require_manager),
+    session: AsyncSession = Depends(get_session),
+):
+    products = await list_products(
+        session,
+        tenant_id=cu.tenant.id,
+        query=query,
+        limit=limit,
+        include_inactive=include_inactive,
+    )
+    return [_out(p) for p in products]
+
+
 # ---- manager (JWT): CRUD ----
 @router.post("/catalog/products", response_model=ProductOut, status_code=201)
 async def create_catalog_product(
