@@ -10,6 +10,7 @@ from presentation.middleware.pin_auth import PinAuthMiddleware
 from presentation.routes import products, pos, sales, webhooks, auth, dashboard, testing
 from presentation.multitenant import (
     accounts as mt_accounts,
+    admin as mt_admin,
     catalog as mt_catalog,
     orders as mt_orders,
     pairing as mt_pairing,
@@ -46,6 +47,7 @@ app.include_router(mt_accounts.router, prefix="/api/v2", tags=["v2-accounts"])
 app.include_router(mt_pairing.router, prefix="/api/v2", tags=["v2-pairing"])
 app.include_router(mt_catalog.router, prefix="/api/v2", tags=["v2-catalog"])
 app.include_router(mt_orders.router, prefix="/api/v2", tags=["v2-orders"])
+app.include_router(mt_admin.router, prefix="/api/v2", tags=["v2-admin"])
 
 if settings.test_mode:
     app.include_router(mt_orders.testing_router, prefix="/api/v2", tags=["v2-testing"])

@@ -72,7 +72,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.test
     image: lightning-pos-backend-tests:latest
-    command: ["pytest", "-v", "-s", "tests/test_mt_pairing.py", "tests/test_mt_orders.py"]
+    command: ["pytest", "-v", "-s", "tests/test_mt_pairing.py", "tests/test_mt_orders.py", "tests/test_mt_admin.py"]
     environment:
       BACKEND_URL: http://backend:8000
     depends_on:

@@ -6,6 +6,7 @@ testing). Debe ser un singleton compartido entre rutas (ver infrastructure/provi
 
 from __future__ import annotations
 
+import secrets
 import time
 
 from domain.ports.wallet_provider import (
@@ -34,7 +35,9 @@ class FakeWalletProvider(WalletProvider):
         self, invoice_key: str, amount_sats: int, memo: str, webhook_url: str | None = None
     ) -> WalletInvoice:
         self._counter += 1
-        payment_hash = f"fakehash{self._counter:012d}"
+        # Aleatorio, no secuencial: el contador vive en memoria y tras un restart
+        # del backend chocaría con hashes ya persistidos en la DB (unicidad real).
+        payment_hash = f"fakehash{secrets.token_hex(12)}"
         bolt11 = f"lnbcfake{amount_sats}n1{payment_hash}"
         return WalletInvoice(
             payment_hash=payment_hash, bolt11=bolt11, expires_at=int(time.time()) + 300
