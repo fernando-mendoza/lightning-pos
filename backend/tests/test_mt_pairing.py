@@ -39,6 +39,8 @@ def test_pairing_and_terminal():
     assert r.status_code == 200
     dev = r.json()
     assert dev["tenant"]["id"] == a["tenant_id"] and dev["terminal"]["role"] == "cashier"
+    # el nombre del pairing code (elegido por el manager) gana sobre device_name
+    assert dev["terminal"]["name"] == "Mesa 1"
     # terminal/me
     r = c.get(BASE + "/terminal/me", headers={"Authorization": f"Bearer {dev['device_token']}"})
     assert r.status_code == 200 and r.json()["tenant_id"] == a["tenant_id"]

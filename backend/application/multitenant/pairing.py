@@ -61,7 +61,9 @@ async def redeem_pairing(
 
     terminal = Terminal(
         tenant_id=pc.tenant_id,
-        name=device_name or pc.name,
+        # El nombre lo decide el manager al crear el pairing code; device_name
+        # (p.ej. "ios") es solo fallback si el código se creó sin nombre.
+        name=pc.name or device_name or "Terminal",
         role=pc.role,
         status=TerminalStatus.active,
         created_by=pc.created_by,
