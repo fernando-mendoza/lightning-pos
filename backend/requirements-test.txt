@@ -2,3 +2,5 @@ pytest>=8.3.0
 pytest-asyncio>=0.24.0
 httpx>=0.28.0
 anyio>=4.0.0
+# para unit tests que importan módulos del backend (ej. rate_limit)
+fastapi>=0.115.0

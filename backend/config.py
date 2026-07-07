@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     # Vida del código de pairing (segundos).
     pairing_code_ttl_seconds: int = 90
 
+    # Rate limits de endpoints públicos ("N/segundos"), por IP, en memoria.
+    rate_limit_login: str = "20/60"
+    rate_limit_register: str = "10/300"
+    rate_limit_redeem: str = "30/60"
+
     # Clave para encriptar at-rest las llaves LNbits por tenant (AES-GCM, enc:v1:).
     # REQUERIDA en producción. Generar: openssl rand -hex 32
     data_encryption_key: str = ""

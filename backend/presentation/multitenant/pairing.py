@@ -18,6 +18,7 @@ from application.multitenant.pairing import (
 )
 from config import settings
 from infrastructure.db.base import get_session
+from infrastructure.security.rate_limit import rate_limit
 from infrastructure.db.models import TerminalRole
 from presentation.multitenant.deps import (
     CurrentUser,
@@ -129,7 +130,11 @@ async def revoke(
 
 
 # ---- público (la app canjea el código del QR) ----
-@router.post("/pairing/redeem", response_model=RedeemOut)
+@router.post(
+    "/pairing/redeem",
+    response_model=RedeemOut,
+    dependencies=[Depends(rate_limit("redeem", settings.rate_limit_redeem))],
+)
 async def redeem(body: RedeemIn, session: AsyncSession = Depends(get_session)):
     res = await redeem_pairing(session, code=body.code, device_name=body.device_name)
     if res is None:

@@ -12,9 +12,11 @@ from application.multitenant.accounts import (
     list_memberships,
     register_account,
 )
+from config import settings
 from infrastructure.db.base import get_session
 from infrastructure.db.models import User
 from infrastructure.security.jwt_tokens import create_access_token, create_refresh_token
+from infrastructure.security.rate_limit import rate_limit
 from presentation.multitenant.deps import get_authenticated_user, get_wallet
 
 router = APIRouter()
@@ -61,7 +63,12 @@ class MeOut(BaseModel):
     memberships: list[MembershipOut]
 
 
-@router.post("/auth/register", response_model=AuthOut, status_code=201)
+@router.post(
+    "/auth/register",
+    response_model=AuthOut,
+    status_code=201,
+    dependencies=[Depends(rate_limit("register", settings.rate_limit_register))],
+)
 async def register(
     body: RegisterIn,
     session: AsyncSession = Depends(get_session),
@@ -87,7 +94,11 @@ async def register(
     )
 
 
-@router.post("/auth/login", response_model=LoginOut)
+@router.post(
+    "/auth/login",
+    response_model=LoginOut,
+    dependencies=[Depends(rate_limit("login", settings.rate_limit_login))],
+)
 async def login(body: LoginIn, session: AsyncSession = Depends(get_session)):
     user = await authenticate(session, body.email, body.password)
     if user is None:

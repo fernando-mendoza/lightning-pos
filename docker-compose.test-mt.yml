@@ -52,6 +52,10 @@ services:
       LPOS_PUBLIC_BASE_URL: http://backend:8000
       LPOS_ALLOWED_ORIGINS: http://localhost
       LPOS_MAX_PIN_ATTEMPTS: "1000"
+      # La suite entera pega desde una sola IP; sin esto el rate limit la bloquea.
+      LPOS_RATE_LIMIT_LOGIN: "10000/60"
+      LPOS_RATE_LIMIT_REGISTER: "10000/60"
+      LPOS_RATE_LIMIT_REDEEM: "10000/60"
     expose:
       - "8000"
     depends_on:
@@ -73,7 +77,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.test
     image: lightning-pos-backend-tests:latest
-    command: ["pytest", "-v", "-s", "tests/test_mt_pairing.py", "tests/test_mt_orders.py", "tests/test_mt_admin.py"]
+    command: ["pytest", "-v", "-s", "tests/test_mt_pairing.py", "tests/test_mt_orders.py", "tests/test_mt_admin.py", "tests/test_rate_limit.py"]
     environment:
       BACKEND_URL: http://backend:8000
     depends_on:

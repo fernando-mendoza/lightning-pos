@@ -11,5 +11,8 @@ COPY requirements-test.txt pytest.ini ./
 RUN pip install --no-cache-dir -r requirements-test.txt
 
 COPY tests/ ./tests/
+# Módulos puros del backend que los unit tests importan directo (sin HTTP).
+COPY infrastructure/security/rate_limit.py ./infrastructure/security/rate_limit.py
+RUN touch infrastructure/__init__.py infrastructure/security/__init__.py
 
 CMD ["pytest", "-v", "-s"]
