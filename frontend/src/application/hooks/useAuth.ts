@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  DEMO_TOKEN,
+  exitDemo,
+  isDemoActive,
+  maybeStartDemo,
+  tryDemoLogin,
+} from "../../infrastructure/demo";
 
 const TOKEN_STORAGE_KEY = "lpos.auth.token";
+
+// Arranca el modo demo (deep-link /demo o flag persistido) ANTES de leer el
+// token, para que la sesión use DEMO_TOKEN y el shim de red quede instalado.
+const _demoBoot = maybeStartDemo();
 
 function readStoredToken(): string | null {
   try {
@@ -19,7 +30,7 @@ function writeStoredToken(token: string | null): void {
   }
 }
 
-let _token: string | null = readStoredToken();
+let _token: string | null = _demoBoot ? DEMO_TOKEN : readStoredToken();
 
 export function getToken(): string | null {
   return _token;
@@ -53,6 +64,14 @@ export function useAuth() {
   }, [checkStatus]);
 
   const login = async (pin: string): Promise<boolean> => {
+    // PIN mágico del demo → sesión local, sin tocar el backend.
+    const demoToken = tryDemoLogin(pin);
+    if (demoToken) {
+      _token = demoToken;
+      writeStoredToken(demoToken);
+      setToken(demoToken);
+      return true;
+    }
     const res = await fetch("/api/auth/verify-pin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,6 +97,12 @@ export function useAuth() {
   };
 
   const logout = () => {
+    // En demo, salir limpio: borrar el flag y recargar para desinstalar el shim.
+    if (isDemoActive()) {
+      writeStoredToken(null);
+      exitDemo();
+      return;
+    }
     _token = null;
     writeStoredToken(null);
     setToken(null);
