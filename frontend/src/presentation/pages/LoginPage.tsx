@@ -40,6 +40,12 @@ export default function LoginPage({ onAuthenticated }: Props) {
           }}
         />
       )}
+      <a
+        href="/demo"
+        className="mt-6 text-xs text-text-secondary underline-offset-4 hover:text-text-primary hover:underline"
+      >
+        Ver demostración
+      </a>
       <BrandingFooter />
     </div>
   );
