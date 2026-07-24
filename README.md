@@ -2,7 +2,28 @@
 
 Punto de venta móvil (PWA) para aceptar pagos en Bitcoin por Lightning Network, con precios en MXN y conversión automática a sats.
 
-> **Estado:** MVP funcional con suite de tests de concurrencia. Aún no desplegado en producción.
+> **Estado:** en producción — **[pos.lightningnetwork.tf](https://pos.lightningnetwork.tf)**. Probá el producto sin instalar nada ni tocar el backend con el **[modo demostración](https://pos.lightningnetwork.tf/demo)** (o con el PIN `1111`): un PoS mock 100% en el navegador.
+
+## Capturas
+
+Todas las imágenes son del **modo demostración** en vivo ([`/demo`](https://pos.lightningnetwork.tf/demo)), que replica el flujo completo con datos de ejemplo y **sin conexión al backend**.
+
+![Demostración del PoS web](docs/screenshots/demo.gif)
+
+<table>
+  <tr>
+    <td width="50%"><b>Catálogo y cobro táctil</b><br><img src="docs/screenshots/01-pos.png" alt="Catálogo del POS"></td>
+    <td width="50%"><b>Carrito con propina y descuento</b><br><img src="docs/screenshots/02-carrito.png" alt="Carrito"></td>
+  </tr>
+  <tr>
+    <td><b>Cobro Lightning: QR BOLT11 · MXN↔sats</b><br><img src="docs/screenshots/03-cobro.png" alt="Cobro con QR Lightning"></td>
+    <td><b>Historial de ventas del día</b><br><img src="docs/screenshots/04-historial.png" alt="Historial de ventas"></td>
+  </tr>
+  <tr>
+    <td><b>Dashboard: hoy, últimos 7 días, top productos</b><br><img src="docs/screenshots/05-dashboard.png" alt="Dashboard de ventas"></td>
+    <td><b>Gestión de productos (ABM)</b><br><img src="docs/screenshots/06-productos.png" alt="Gestión de productos"></td>
+  </tr>
+</table>
 
 ## Características
 
