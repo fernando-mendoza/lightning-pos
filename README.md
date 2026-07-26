@@ -1,8 +1,23 @@
 # Lightning POS ⚡
 
-Punto de venta móvil (PWA) para aceptar pagos en Bitcoin por Lightning Network, con precios en MXN y conversión automática a sats.
+Punto de venta móvil para aceptar pagos en Bitcoin por Lightning Network, con precios en MXN y conversión automática a sats. Disponible como **app iOS** y como **PWA web**.
 
-> **Estado:** en producción — **[pos.lightningnetwork.tf](https://pos.lightningnetwork.tf)**. Probá el producto sin instalar nada ni tocar el backend con el **[modo demostración](https://pos.lightningnetwork.tf/demo)** (o con el PIN `1111`): un PoS mock 100% en el navegador.
+> **Estado:** en producción.
+> **App iOS:** [Lightning POS en el App Store](https://apps.apple.com/app/lightning-pos/id6790569225) — gratis, iPhone/iPad, iOS 15.1+ (v1.0, publicada el 26/07/2026).
+> **PoS web:** **[pos.lightningnetwork.tf](https://pos.lightningnetwork.tf)** — probalo sin instalar nada ni tocar el backend con el **[modo demostración](https://pos.lightningnetwork.tf/demo)** (o con el PIN `1111`): un PoS mock 100% en el navegador.
+> **Landing del producto:** [lightningnetwork.tf](https://lightningnetwork.tf)
+
+## Descargar la app
+
+<a href="https://apps.apple.com/app/lightning-pos/id6790569225"><img src="docs/appstore-badge-es.svg" alt="Descárgalo en el App Store" height="52"></a>
+
+La app móvil es un *thin client* del backend multi-tenant de este repo (`/api/v2`): la terminal
+se empareja escaneando un QR y solo guarda un device token. Es **no-custodial** — la app nunca
+tiene llaves ni fondos; los invoices los emite la wallet Lightning del propio comercio y el pago
+liquida directo ahí. Su código vive en un repo aparte (`expo-pos-terminal`).
+
+Para evaluarla sin cuenta: al emparejar, usar el código `demo` → arranca un **modo demostración**
+autocontenido (datos de ejemplo, sin backend ni wallet, los cobros se auto-confirman).
 
 ## Capturas
 
@@ -34,6 +49,7 @@ Todas las imágenes son del **modo demostración** en vivo ([`/demo`](https://po
 - 🔐 Autenticación por PIN con JWT firmado, rate limit y lockout ante fuerza bruta
 - 📊 Dashboard de ventas e historial
 - 📱 Instalable como PWA (manifest + service worker)
+- 🍎 App iOS nativa en el [App Store](https://apps.apple.com/app/lightning-pos/id6790569225): terminal multi-tenant que se empareja por QR (`/api/v2`)
 
 ## Stack
 
@@ -41,6 +57,7 @@ Todas las imágenes son del **modo demostración** en vivo ([`/demo`](https://po
 |---|---|
 | Backend | Python 3.12 · FastAPI · SQLite (aiosqlite) |
 | Frontend | React 19 · Vite · TypeScript · Tailwind CSS v4 |
+| App iOS | Expo SDK 54 · React Native · TypeScript (repo `expo-pos-terminal`, consume `/api/v2`) |
 | Lightning | LNbits (+ Phoenixd como funding source en producción) |
 | Infra | Docker Compose · Nginx (frontend) |
 
