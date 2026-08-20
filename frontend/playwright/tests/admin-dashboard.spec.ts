@@ -28,8 +28,14 @@ test.describe("admin dashboard", () => {
     await page.getByTestId("admin-password").fill(PASSWORD);
     await page.getByTestId("admin-login-submit").click();
     await expect(page).toHaveURL(/\/admin$/);
-    await expect(page.getByText("Ventas pagadas")).toBeVisible();
+    await expect(page.getByText("Ventas cobradas")).toBeVisible();
     await expect(page.getByTestId("report-count")).toHaveText("0");
+    // El desglose por método siempre está presente, incluso en cero: si desapareciera, el
+    // dueño no tendría cómo saber cuánto de su total entró en efectivo.
+    await expect(page.getByTestId("report-count-split")).toHaveText("0 efectivo · 0 Lightning");
+    await expect(page.getByTestId("report-mxn-split")).toHaveText(
+      "$0.00 efectivo · $0.00 Lightning"
+    );
     await expect(page.getByText(TENANT)).toBeVisible(); // header con el tenant
     await expect(page.getByText("Powered by AgentykCo")).toBeVisible();
   });

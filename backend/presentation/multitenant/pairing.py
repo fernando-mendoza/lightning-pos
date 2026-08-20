@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from application.multitenant.capabilities import tenant_payment_methods
 from application.multitenant.pairing import (
     create_pairing_code,
     list_terminals,
@@ -149,10 +150,16 @@ async def redeem(body: RedeemIn, session: AsyncSession = Depends(get_session)):
 
 # ---- terminal (device token) ----
 @router.get("/terminal/me")
-async def terminal_me(tc: TerminalContext = Depends(get_terminal_context)):
+async def terminal_me(
+    tc: TerminalContext = Depends(get_terminal_context),
+    session: AsyncSession = Depends(get_session),
+):
+    # `payment_methods` es la fuente de verdad para la app: sólo se ofrece lo que este tenant
+    # puede cobrar de verdad. Campo aditivo — las apps ya publicadas lo ignoran sin romperse.
     return {
         "terminal_id": str(tc.terminal.id),
         "name": tc.terminal.name,
         "role": tc.role.value,
         "tenant_id": str(tc.tenant_id),
+        "payment_methods": await tenant_payment_methods(session, tc.tenant_id),
     }

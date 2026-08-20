@@ -131,7 +131,12 @@ def test_reports_summary():
     r = c.get(BASE + "/reports/summary", headers=a["hdr"])
     assert r.status_code == 200, r.text
     s = r.json()
-    assert s["totals"] == {"count": 1, "mxn": "110.00", "sats": 5500}
+    # El resumen creció con el desglose por método (Fase 1: efectivo). Los tres campos
+    # originales tienen que seguir dando lo mismo — eso es lo que se protege acá.
+    assert s["totals"]["count"] == 1
+    assert s["totals"]["mxn"] == "110.00"
+    assert s["totals"]["sats"] == 5500
+    assert s["totals"]["cash_count"] == 0 and s["totals"]["lightning_count"] == 1
     assert len(s["by_day"]) == 1 and s["by_day"][0]["mxn"] == "110.00"
     assert len(s["by_terminal"]) == 1 and s["by_terminal"][0]["name"] == "Barra"
     # rango sin ventas -> ceros

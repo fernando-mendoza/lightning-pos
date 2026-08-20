@@ -55,6 +55,9 @@ services:
       # La suite entera pega desde una sola IP; sin esto el rate limit la bloquea.
       LPOS_RATE_LIMIT_LOGIN: "10000/60"
       LPOS_RATE_LIMIT_REGISTER: "10000/60"
+      # El alta pública viene CERRADA por defecto (config.py: registration_enabled).
+      # Los tests multi-tenant registran tenants, así que acá se abre explícito.
+      LPOS_REGISTRATION_ENABLED: "1"
       LPOS_RATE_LIMIT_REDEEM: "10000/60"
     expose:
       - "8000"
@@ -77,7 +80,19 @@ services:
       context: ./backend
       dockerfile: Dockerfile.test
     image: lightning-pos-backend-tests:latest
-    command: ["pytest", "-v", "-s", "tests/test_mt_pairing.py", "tests/test_mt_orders.py", "tests/test_mt_admin.py", "tests/test_rate_limit.py"]
+    # Corre TODO menos los tests HTTP de v1 (lista estable de ignores). La selección
+    # positiva ya nos mordió dos veces: la lista explícita de archivos saltó test_mt_cash
+    # en silencio, y el patrón -k saltó test_nip44 en silencio. Con ignores, un archivo
+    # nuevo entra solo. `tests/testsprite` excluido: ejecuta al importarse y pega a prod.
+    command: ["pytest", "-v", "-s", "tests/",
+              "--ignore=tests/testsprite",
+              "--ignore=tests/test_smoke.py",
+              "--ignore=tests/test_invoice_expiration.py",
+              "--ignore=tests/test_invoice_lifecycle.py",
+              "--ignore=tests/test_product_concurrency.py",
+              "--ignore=tests/test_registration_gate.py",
+              "--ignore=tests/test_stress_5_cashiers.py",
+              "--ignore=tests/test_webhook_idempotency.py"]
     environment:
       BACKEND_URL: http://backend:8000
     depends_on:

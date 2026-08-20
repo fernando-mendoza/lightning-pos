@@ -74,8 +74,12 @@ server {
         proxy_send_timeout 3600s;
     }
 
-    # SPA fallback — any unknown route serves index.html for client-side routing
+    # SPA fallback — any unknown route serves index.html for client-side routing.
+    # index.html NO se cachea: referencia los bundles hasheados, asi que una copia
+    # vieja en el cache del navegador deja al usuario en una version vieja de la app
+    # (los /assets/ si son cacheables para siempre porque llevan hash en el nombre).
     location / {
+        add_header Cache-Control "no-cache, must-revalidate" always;
         try_files $uri $uri/ /index.html;
     }
 }

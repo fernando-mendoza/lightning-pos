@@ -4,3 +4,7 @@ httpx>=0.28.0
 anyio>=4.0.0
 # para unit tests que importan módulos del backend (ej. rate_limit)
 fastapi>=0.115.0
+# unit tests del cliente NWC (crypto + relay en proceso)
+coincurve>=20.0.0
+websockets>=14.0
+cryptography>=44.0.0

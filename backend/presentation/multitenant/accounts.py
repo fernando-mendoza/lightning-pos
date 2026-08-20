@@ -63,11 +63,26 @@ class MeOut(BaseModel):
     memberships: list[MembershipOut]
 
 
+def require_registration_enabled() -> None:
+    """Cierra el alta pública salvo que se habilite explícitamente.
+
+    El alta provisiona una wallet LNbits en nuestra instancia (custodial), así que dejarla
+    abierta = custodiar fondos de terceros. Ver el comentario de `registration_enabled` en
+    config.py. Se evalúa por request, no al importar, para que se pueda abrir/cerrar
+    cambiando la env var y reiniciando, sin tocar código.
+    """
+    if not settings.registration_enabled:
+        raise HTTPException(status_code=403, detail="registration_disabled")
+
+
 @router.post(
     "/auth/register",
     response_model=AuthOut,
     status_code=201,
-    dependencies=[Depends(rate_limit("register", settings.rate_limit_register))],
+    dependencies=[
+        Depends(require_registration_enabled),
+        Depends(rate_limit("register", settings.rate_limit_register)),
+    ],
 )
 async def register(
     body: RegisterIn,

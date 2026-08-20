@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.multitenant.accounts import AccountError
@@ -14,6 +14,8 @@ from infrastructure.db.models import (
     InvoiceStatus,
     Membership,
     Order,
+    OrderStatus,
+    PaymentMethod,
     Role,
     Tenant,
     Terminal,
@@ -132,37 +134,61 @@ async def rename_terminal(
 async def sales_summary(
     session: AsyncSession, *, tenant_id, date_from: date, date_to: date
 ) -> dict:
-    """Invoices pagadas del tenant agregadas por día (UTC) y por terminal.
-    Rango inclusive [date_from, date_to] sobre paid_at."""
+    """VENTAS del tenant (órdenes pagadas, por cualquier método) por día (UTC) y terminal.
+
+    Agrega sobre `orders`, no sobre `invoices`: una venta en efectivo no tiene invoice y
+    antes de la Fase 1 habría sido invisible acá — el dueño no vería el dinero que su
+    cajero sí cobró.
+
+    Los sats salen del LEFT JOIN con la invoice pagada, así que una venta en efectivo
+    aporta al total en MXN pero **0 sats**, que es la verdad: no hubo bitcoin de por medio.
+    Una orden tiene como mucho una invoice (no se puede re-facturar una orden ya facturada),
+    así que el join no duplica filas.
+    """
     start = datetime.combine(date_from, time.min, tzinfo=timezone.utc)
     end = datetime.combine(date_to, time.max, tzinfo=timezone.utc)
     paid_filter = (
-        Invoice.tenant_id == tenant_id,
-        Invoice.status == InvoiceStatus.paid,
-        Invoice.paid_at >= start,
-        Invoice.paid_at <= end,
+        Order.tenant_id == tenant_id,
+        Order.status == OrderStatus.paid,
+        Order.paid_at >= start,
+        Order.paid_at <= end,
     )
+    paid_invoice = (Invoice.order_id == Order.id) & (Invoice.status == InvoiceStatus.paid)
 
-    count, mxn, sats = (
+    is_cash = Order.payment_method == PaymentMethod.cash
+    cash_mxn = func.coalesce(func.sum(case((is_cash, Order.total_mxn), else_=0)), 0)
+    ln_mxn = func.coalesce(func.sum(case((is_cash, 0), else_=Order.total_mxn)), 0)
+    cash_count = func.count(case((is_cash, Order.id)))
+    sats_sum = func.coalesce(func.sum(Invoice.amount_sats), 0)
+
+    def _base():
+        return select().select_from(Order).outerjoin(Invoice, paid_invoice).where(*paid_filter)
+
+    count, mxn, sats, c_count, c_mxn, l_mxn = (
         await session.execute(
-            select(
-                func.count(Invoice.id),
-                func.coalesce(func.sum(Invoice.amount_mxn), 0),
-                func.coalesce(func.sum(Invoice.amount_sats), 0),
-            ).where(*paid_filter)
+            _base().add_columns(
+                func.count(Order.id),
+                func.coalesce(func.sum(Order.total_mxn), 0),
+                sats_sum,
+                cash_count,
+                cash_mxn,
+                ln_mxn,
+            )
         )
     ).one()
 
-    day = func.date_trunc("day", Invoice.paid_at).label("day")
+    day = func.date_trunc("day", Order.paid_at).label("day")
     by_day = (
         await session.execute(
-            select(
+            _base()
+            .add_columns(
                 day,
-                func.count(Invoice.id),
-                func.sum(Invoice.amount_mxn),
-                func.sum(Invoice.amount_sats),
+                func.count(Order.id),
+                func.sum(Order.total_mxn),
+                sats_sum,
+                cash_mxn,
+                ln_mxn,
             )
-            .where(*paid_filter)
             .group_by(day)
             .order_by(day)
         )
@@ -170,18 +196,19 @@ async def sales_summary(
 
     by_terminal = (
         await session.execute(
-            select(
+            _base()
+            .outerjoin(Terminal, Terminal.id == Order.terminal_id)
+            .add_columns(
                 Order.terminal_id,
                 func.max(Terminal.name),
-                func.count(Invoice.id),
-                func.sum(Invoice.amount_mxn),
-                func.sum(Invoice.amount_sats),
+                func.count(Order.id),
+                func.sum(Order.total_mxn),
+                sats_sum,
+                cash_mxn,
+                ln_mxn,
             )
-            .join(Order, Order.id == Invoice.order_id)
-            .outerjoin(Terminal, Terminal.id == Order.terminal_id)
-            .where(*paid_filter)
             .group_by(Order.terminal_id)
-            .order_by(func.sum(Invoice.amount_mxn).desc())
+            .order_by(func.sum(Order.total_mxn).desc())
         )
     ).all()
 
@@ -191,10 +218,26 @@ async def sales_summary(
     return {
         "from": date_from.isoformat(),
         "to": date_to.isoformat(),
-        "totals": {"count": count, "mxn": _mxn(mxn), "sats": int(sats)},
+        "totals": {
+            "count": count,
+            "mxn": _mxn(mxn),
+            "sats": int(sats),
+            # Desglose por método. `mxn` es TODO lo cobrado; `sats` sólo la parte Lightning.
+            "cash_count": c_count,
+            "cash_mxn": _mxn(c_mxn),
+            "lightning_count": count - c_count,
+            "lightning_mxn": _mxn(l_mxn),
+        },
         "by_day": [
-            {"day": d.date().isoformat(), "count": n, "mxn": _mxn(m), "sats": int(s)}
-            for (d, n, m, s) in by_day
+            {
+                "day": d.date().isoformat(),
+                "count": n,
+                "mxn": _mxn(m),
+                "sats": int(s),
+                "cash_mxn": _mxn(cm),
+                "lightning_mxn": _mxn(lm),
+            }
+            for (d, n, m, s, cm, lm) in by_day
         ],
         "by_terminal": [
             {
@@ -203,7 +246,9 @@ async def sales_summary(
                 "count": n,
                 "mxn": _mxn(m),
                 "sats": int(s),
+                "cash_mxn": _mxn(cm),
+                "lightning_mxn": _mxn(lm),
             }
-            for (tid, tname, n, m, s) in by_terminal
+            for (tid, tname, n, m, s, cm, lm) in by_terminal
         ],
     }

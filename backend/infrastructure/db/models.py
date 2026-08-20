@@ -63,8 +63,21 @@ class InvoiceStatus(str, enum.Enum):
     cancelled = "cancelled"
 
 
+class PaymentMethod(str, enum.Enum):
+    """Cómo se cobró la orden. La invoice es el artefacto de UN método, no la venta."""
+
+    lightning = "lightning"
+    cash = "cash"
+
+
 class WalletProviderKind(str, enum.Enum):
     lnbits = "lnbits"
+    # BYO wallet vía NIP-47: la credencial es la cadena de conexión (en invoice_key_enc),
+    # no custodiamos fondos y no hay provisión. native_enum=False ⇒ sin migración de DB.
+    nwc = "nwc"
+    # Nodo self-custodial en enclave, vía su sidecar REST. Rampa para el comercio sin
+    # wallet, hasta que Lexe exponga NWC en su app y estos tenants migren a `nwc`.
+    lexe = "lexe"
 
 
 def _uuid_pk() -> Mapped[uuid.UUID]:
@@ -235,6 +248,7 @@ class Product(Base):
 # ---------- órdenes / invoices ----------
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (Index("ix_orders_tenant_paid_at", "tenant_id", "paid_at"),)
 
     id: Mapped[uuid.UUID] = _uuid_pk()
     tenant_id: Mapped[uuid.UUID] = mapped_column(
@@ -251,9 +265,19 @@ class Order(Base):
         nullable=False,
         default=OrderStatus.open,
     )
+    # Cómo se cobró. Default lightning: es lo único que existía antes de este campo.
+    payment_method: Mapped[PaymentMethod] = mapped_column(
+        SAEnum(PaymentMethod, native_enum=False, length=20),
+        nullable=False,
+        default=PaymentMethod.lightning,
+        server_default=PaymentMethod.lightning.value,
+    )
     subtotal_mxn: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     total_mxn: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     created_at: Mapped[datetime] = _created_at()
+    # Cuándo entró el dinero. NO es created_at: la orden se crea al armar el carrito y el
+    # corte del día se hace por cuándo se cobró.
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     items: Mapped[list["OrderItem"]] = relationship(
         back_populates="order", cascade="all, delete-orphan"
@@ -298,6 +322,10 @@ class Invoice(Base):
         default=WalletProviderKind.lnbits,
     )
     provider_wallet_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Referencia con la que el PROVEEDOR identifica este pago, cuando no le alcanza el hash.
+    # Lexe indexa por `<created_ms>-ln_<hash>` y no ofrece consulta por hash: sin esto, sus
+    # invoices se emitirían pero jamás se podrían reconciliar.
+    provider_ref: Mapped[str | None] = mapped_column(String(200), nullable=True)
     bolt11: Mapped[str] = mapped_column(Text, nullable=False)
     payment_hash: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
     amount_sats: Mapped[int] = mapped_column(BigInteger, nullable=False)

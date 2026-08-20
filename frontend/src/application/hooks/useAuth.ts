@@ -39,7 +39,10 @@ export function getToken(): string | null {
 export function clearSessionAndReload(): void {
   _token = null;
   writeStoredToken(null);
-  if (typeof window !== "undefined") window.location.replace("/");
+  // exitDemo tambien borra el flag del demo (lpos.demo) y recarga a "/". Sin eso,
+  // maybeStartDemo reactiva el demo en el reload y "Salir" nunca libera al usuario.
+  // En sesion normal el flag no existe, asi que removeItem es no-op.
+  exitDemo();
 }
 
 export function useAuth() {

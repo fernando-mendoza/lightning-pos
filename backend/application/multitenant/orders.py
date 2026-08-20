@@ -11,7 +11,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
@@ -23,9 +23,9 @@ from infrastructure.db.models import (
     Order,
     OrderItem,
     OrderStatus,
+    PaymentMethod,
     Product,
     TenantWallet,
-    WalletProviderKind,
 )
 from infrastructure.security import crypto
 
@@ -156,8 +156,9 @@ async def create_invoice_for_order(
     invoice = Invoice(
         tenant_id=tenant_id,
         order_id=order.id,
-        provider=WalletProviderKind.lnbits,
+        provider=tw.provider,
         provider_wallet_id=tw.lnbits_wallet_id,
+        provider_ref=wi.provider_ref,
         bolt11=wi.bolt11,
         payment_hash=wi.payment_hash,
         amount_sats=amount_sats,
@@ -174,10 +175,76 @@ async def create_invoice_for_order(
 
 
 def _apply_paid(invoice: Invoice, order: Order | None) -> None:
+    now = datetime.now(timezone.utc)
     invoice.status = InvoiceStatus.paid
-    invoice.paid_at = datetime.now(timezone.utc)
+    invoice.paid_at = now
     if order is not None:
         order.status = OrderStatus.paid
+        # La orden también sella su paid_at: los reportes agregan sobre orders, no sobre
+        # invoices, así que sin esto una venta Lightning quedaría fuera del corte del día.
+        order.paid_at = now
+
+
+async def close_order_cash(session: AsyncSession, *, tenant_id, order_id) -> Order:
+    """Cierra una orden cobrada en efectivo: sin wallet, sin invoice, sin tipo de cambio.
+
+    Sólo se puede desde `open`. Una orden `invoiced` tiene un QR vivo que el cliente
+    todavía puede pagar: cerrarla en efectivo arriesga cobrar dos veces la misma venta, y
+    en un mostrador eso se descubre tarde y mal. Si el cliente cambia de opinión frente al
+    QR, el camino es cobrar en una orden nueva y dejar que la anterior expire (una orden
+    expirada no cuenta en los reportes).
+    """
+    order = (
+        await session.execute(
+            select(Order).where(Order.id == order_id, Order.tenant_id == tenant_id)
+        )
+    ).scalar_one_or_none()
+    if order is None:
+        raise OrderError("order_not_found")
+
+    # Idempotente: reintentar por red inestable no puede duplicar ni fallar en falso.
+    if order.status == OrderStatus.paid:
+        if order.payment_method == PaymentMethod.cash:
+            return order
+        raise OrderError("order_already_paid")
+
+    if order.status != OrderStatus.open:
+        raise OrderError("order_not_open")
+    if order.total_mxn <= 0:
+        raise OrderError("empty_order")
+
+    order.payment_method = PaymentMethod.cash
+    order.status = OrderStatus.paid
+    order.paid_at = datetime.now(timezone.utc)
+    await session.commit()
+    return order
+
+
+async def list_sales(session: AsyncSession, *, tenant_id, limit: int = 50) -> list[tuple]:
+    """Historial de la terminal: órdenes que llegaron a intentarse cobrar, por cualquier
+    método.
+
+    `list_invoices` sigue existiendo intacto porque las apps ya publicadas lo consumen;
+    esto es el listado nuevo, el único que ve las ventas en efectivo. El LEFT JOIN trae el
+    dato Lightning cuando lo hay y NULL cuando se cobró en efectivo.
+
+    Se excluyen SÓLO las órdenes `open`: son carritos que nunca se cobraron, ruido en el
+    historial. Las `invoiced`/`expired`/`cancelled` sí entran, porque el historial de la
+    app hoy las muestra y quitarlas sería perder una función sin decirlo — el cajero usa
+    esa vista para responder "¿esa venta sí pasó?".
+    """
+    rows = (
+        await session.execute(
+            select(Order, Invoice)
+            .outerjoin(Invoice, Invoice.order_id == Order.id)
+            .where(Order.tenant_id == tenant_id, Order.status != OrderStatus.open)
+            .order_by(
+                func.coalesce(Order.paid_at, Order.created_at).desc(),
+            )
+            .limit(min(limit, 200))
+        )
+    ).all()
+    return [(o, i) for (o, i) in rows]
 
 
 async def get_invoice(
@@ -214,7 +281,7 @@ async def get_invoice(
                     )
                 ).scalar_one()
             )
-            if await wallet.check_invoice(key, invoice.payment_hash):
+            if await wallet.check_invoice(key, invoice.payment_hash, invoice.provider_ref):
                 _apply_paid(invoice, order)
                 await session.commit()
     return invoice
@@ -255,7 +322,7 @@ async def confirm_by_webhook(
         return "confirmed"  # idempotente
     # Capa 2: re-verificar contra el wallet del tenant.
     key = await _tenant_invoice_key(session, invoice.tenant_id)
-    if not await wallet.check_invoice(key, payment_hash):
+    if not await wallet.check_invoice(key, payment_hash, invoice.provider_ref):
         return "ignored"
     order = await session.get(Order, invoice.order_id)
     _apply_paid(invoice, order)

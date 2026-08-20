@@ -43,7 +43,9 @@ class FakeWalletProvider(WalletProvider):
             payment_hash=payment_hash, bolt11=bolt11, expires_at=int(time.time()) + 300
         )
 
-    async def check_invoice(self, invoice_key: str, payment_hash: str) -> bool:
+    async def check_invoice(
+        self, invoice_key: str, payment_hash: str, provider_ref: str | None = None
+    ) -> bool:
         return payment_hash in self._paid
 
     # ---- solo para dev/tests ----

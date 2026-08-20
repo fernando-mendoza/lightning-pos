@@ -28,6 +28,25 @@ class Settings(BaseSettings):
     rate_limit_register: str = "10/300"
     rate_limit_redeem: str = "30/60"
 
+    # ¿El alta pública de tenants (POST /api/v2/auth/register) está abierta?
+    #
+    # DEFAULT False A PROPÓSITO — "fail closed". Cada alta provisiona una wallet LNbits
+    # en NUESTRA instancia (ver infrastructure/lnbits/lnbits_wallet_provider.py: "custodial,
+    # un wallet por tenant"), o sea que un registro abierto significa custodiar fondos de
+    # terceros. Eso contradice lo que prometen las fichas de App Store y Google Play
+    # ("no-custodial") y tiene implicaciones regulatorias en MX (Ley Fintech / LFPIORPI).
+    #
+    # Sólo se abre cuando exista el modelo BYO wallet (NWC), donde el comercio conecta su
+    # propia wallet y nosotros no tocamos fondos. Contexto y roadmap:
+    # hub → workspaces/runs/2026-08-02-lightning-pos-saas-strategy/
+    registration_enabled: bool = False
+    # Interruptor del rail Lightning. En falso, /terminal/me deja de ofrecerlo y el endpoint
+    # de invoice responde 503 en vez de intentar contra un proveedor que no existe.
+    lightning_enabled: bool = True
+    # Sidecar de Lexe (rampa self-custodial). Vacío = no hay rail Lexe configurado.
+    # OJO: el sidecar toma la credencial por PROCESO, así que hoy sirve a UNA wallet.
+    lexe_sidecar_url: str = ""
+
     # Clave para encriptar at-rest las llaves LNbits por tenant (AES-GCM, enc:v1:).
     # REQUERIDA en producción. Generar: openssl rand -hex 32
     data_encryption_key: str = ""

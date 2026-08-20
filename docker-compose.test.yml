@@ -54,7 +54,15 @@ services:
     container_name: lightning-pos-backend-tests
     # Solo los tests del path single-tenant + unit tests puros; los test_mt_*
     # necesitan Postgres y corren en docker-compose.test-mt.yml.
-    command: ["pytest", "-v", "-s", "--ignore=tests/test_mt_pairing.py", "--ignore=tests/test_mt_orders.py", "--ignore=tests/test_mt_admin.py"]
+    #
+    # `--ignore-glob` en vez de listar archivo por archivo: cada `test_mt_*.py` nuevo
+    # quedaba fuera de la suite mt Y DENTRO de esta, donde no tiene Postgres. Un archivo
+    # nuevo no puede depender de que alguien se acuerde de tocar dos listas.
+    #
+    # `tests/testsprite/` se excluye porque esos archivos EJECUTAN AL IMPORTARSE (el runner
+    # de TestSprite corre el módulo, no pytest) y le pegan a PRODUCCIÓN. Sin este ignore,
+    # correr los tests locales manda tráfico al backend en vivo.
+    command: ["pytest", "-v", "-s", "--ignore-glob=tests/test_mt_*.py", "--ignore=tests/testsprite"]
     environment:
       BACKEND_URL: http://backend:8000
     depends_on:

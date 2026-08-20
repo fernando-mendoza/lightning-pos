@@ -11,6 +11,12 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.multitenant.accounts import AccountError
+from application.multitenant.capabilities import tenant_payment_methods
+from application.multitenant.wallet_connect import (
+    WalletConnectError,
+    connect_lexe_wallet,
+    connect_nwc_wallet,
+)
 from application.multitenant.admin import (
     add_member,
     change_password,
@@ -35,6 +41,58 @@ router = APIRouter()
 def _require_owner(cu: CurrentUser) -> None:
     if cu.membership.role != Role.owner:
         raise HTTPException(status_code=403, detail="requires_owner")
+
+
+# ---- wallet BYO (NWC) ----
+
+
+class ConnectNwcIn(BaseModel):
+    # La cadena completa nostr+walletconnect://…; nunca se loguea ni se devuelve.
+    connection: str = Field(min_length=30, max_length=2000)
+
+
+class WalletStatusOut(BaseModel):
+    provider: str
+    payment_methods: list[str]
+
+
+@router.post("/wallet/lexe", response_model=WalletStatusOut)
+async def connect_lexe(
+    cu: CurrentUser = Depends(require_manager),
+    session: AsyncSession = Depends(get_session),
+):
+    """Conecta este tenant al sidecar de Lexe del backend. No recibe secretos: la credencial
+    vive en el entorno del sidecar. Sólo owner, igual que NWC."""
+    _require_owner(cu)
+    try:
+        tw = await connect_lexe_wallet(session, tenant_id=cu.membership.tenant_id)
+    except WalletConnectError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return WalletStatusOut(
+        provider=tw.provider.value,
+        payment_methods=await tenant_payment_methods(session, cu.membership.tenant_id),
+    )
+
+
+@router.post("/wallet/nwc", response_model=WalletStatusOut)
+async def connect_nwc(
+    body: ConnectNwcIn,
+    cu: CurrentUser = Depends(require_manager),
+    session: AsyncSession = Depends(get_session),
+):
+    """Conecta la wallet del comercio por NWC. Sólo owner: es el punto por donde entra el
+    dinero del negocio, no una preferencia de cajero."""
+    _require_owner(cu)
+    try:
+        tw = await connect_nwc_wallet(
+            session, tenant_id=cu.membership.tenant_id, connection_uri=body.connection
+        )
+    except WalletConnectError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return WalletStatusOut(
+        provider=tw.provider.value,
+        payment_methods=await tenant_payment_methods(session, cu.membership.tenant_id),
+    )
 
 
 # ---- password ----

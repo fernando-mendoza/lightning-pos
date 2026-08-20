@@ -14,6 +14,23 @@ const RANGES = [
   { key: "90d", label: "90 días", days: 89 },
 ] as const;
 
+const mxn = (v: string | number) =>
+  `$${Number(v).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
+
+/** Desglose efectivo/Lightning de una fila. Se omite si todo entró por un solo método:
+ *  repetir "$500 · $500 efectivo · $0 Lightning" no informa, sólo hace ruido. */
+function MethodSplit({ cash, lightning }: { cash: string; lightning: string }) {
+  const c = Number(cash);
+  const l = Number(lightning);
+  if (c === 0 || l === 0) return null;
+  return (
+    <span className="text-text-secondary">
+      {" "}
+      ({mxn(c)} efectivo · {mxn(l)} Lightning)
+    </span>
+  );
+}
+
 export default function AdminReportsPage() {
   const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[1]);
   const fetcher = useCallback(
@@ -51,16 +68,28 @@ export default function AdminReportsPage() {
         <>
           <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-border-default bg-bg-surface p-4">
-              <p className="text-sm text-text-secondary">Ventas pagadas</p>
+              <p className="text-sm text-text-secondary">Ventas cobradas</p>
               <p className="text-2xl font-bold" data-testid="report-count">{data.totals.count}</p>
+              <p className="mt-1 text-xs text-text-secondary" data-testid="report-count-split">
+                {data.totals.cash_count} efectivo · {data.totals.lightning_count} Lightning
+              </p>
             </div>
             <div className="rounded-lg border border-border-default bg-bg-surface p-4">
-              <p className="text-sm text-text-secondary">Total MXN</p>
-              <p className="text-2xl font-bold">${Number(data.totals.mxn).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</p>
+              <p className="text-sm text-text-secondary">Total cobrado</p>
+              <p className="text-2xl font-bold" data-testid="report-total-mxn">{mxn(data.totals.mxn)}</p>
+              <p className="mt-1 text-xs text-text-secondary" data-testid="report-mxn-split">
+                {mxn(data.totals.cash_mxn)} efectivo · {mxn(data.totals.lightning_mxn)} Lightning
+              </p>
             </div>
+            {/* Los sats son un SUBCONJUNTO del total, no otra magnitud al mismo nivel: una
+                venta en efectivo suma pesos y cero sats. El rótulo lo dice explícitamente
+                para que nadie lea "total" dos veces y crea que son ingresos distintos. */}
             <div className="rounded-lg border border-border-default bg-bg-surface p-4">
-              <p className="text-sm text-text-secondary">Total sats</p>
+              <p className="text-sm text-text-secondary">Recibido en Lightning</p>
               <p className="text-2xl font-bold text-accent">{data.totals.sats.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                sats · parte del total, no adicional
+              </p>
             </div>
           </div>
 
@@ -77,9 +106,12 @@ export default function AdminReportsPage() {
                       className="flex items-center justify-between rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-sm"
                     >
                       <span className="text-text-secondary">{d.day}</span>
-                      <span>
-                        {d.count} venta{d.count === 1 ? "" : "s"} · ${Number(d.mxn).toFixed(2)} ·{" "}
-                        <span className="text-accent">{d.sats.toLocaleString()} sats</span>
+                      <span className="text-right">
+                        {d.count} venta{d.count === 1 ? "" : "s"} · {mxn(d.mxn)}
+                        <MethodSplit cash={d.cash_mxn} lightning={d.lightning_mxn} />
+                        {d.sats > 0 && (
+                          <span className="text-accent"> · {d.sats.toLocaleString()} sats</span>
+                        )}
                       </span>
                     </div>
                   ))}
@@ -99,9 +131,12 @@ export default function AdminReportsPage() {
                       className="flex items-center justify-between rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-sm"
                     >
                       <span>{t.name ?? "Sin terminal"}</span>
-                      <span>
-                        {t.count} venta{t.count === 1 ? "" : "s"} · ${Number(t.mxn).toFixed(2)} ·{" "}
-                        <span className="text-accent">{t.sats.toLocaleString()} sats</span>
+                      <span className="text-right">
+                        {t.count} venta{t.count === 1 ? "" : "s"} · {mxn(t.mxn)}
+                        <MethodSplit cash={t.cash_mxn} lightning={t.lightning_mxn} />
+                        {t.sats > 0 && (
+                          <span className="text-accent"> · {t.sats.toLocaleString()} sats</span>
+                        )}
                       </span>
                     </div>
                   ))}

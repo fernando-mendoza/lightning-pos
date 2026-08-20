@@ -17,11 +17,23 @@ class ProvisionedWallet:
     admin_key: str | None
 
 
+class WalletProviderUnavailable(Exception):
+    """El rail de cobro externo no responde o rechaza la operación.
+
+    Existe para distinguirla de un error nuestro. Sin ella, un proveedor caído sale como 500
+    y el cajero lee "Algo salió mal": el comerciante no puede saber que el problema es del
+    proveedor de pagos y culpa a la app.
+    """
+
+
 @dataclass
 class WalletInvoice:
     payment_hash: str
     bolt11: str
     expires_at: int  # unix timestamp
+    # Referencia opaca del proveedor, para los que no saben buscar por hash (Lexe).
+    # `check_invoice` la recibe de vuelta; los que no la usan la ignoran.
+    provider_ref: str | None = None
 
 
 class WalletProvider(ABC):
@@ -34,4 +46,6 @@ class WalletProvider(ABC):
     ) -> WalletInvoice: ...
 
     @abstractmethod
-    async def check_invoice(self, invoice_key: str, payment_hash: str) -> bool: ...
+    async def check_invoice(
+        self, invoice_key: str, payment_hash: str, provider_ref: str | None = None
+    ) -> bool: ...

@@ -100,14 +100,17 @@ export interface AdminMember {
 
 export interface ReportRow {
   count: number;
+  // `mxn` es TODO lo cobrado (efectivo + Lightning); `sats` es sólo la parte Lightning.
   mxn: string;
   sats: number;
+  cash_mxn: string;
+  lightning_mxn: string;
 }
 
 export interface ReportSummary {
   from: string;
   to: string;
-  totals: ReportRow;
+  totals: ReportRow & { cash_count: number; lightning_count: number };
   by_day: (ReportRow & { day: string })[];
   by_terminal: (ReportRow & { terminal_id: string | null; name: string | null })[];
 }
