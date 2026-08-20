@@ -50,7 +50,8 @@ Todas las imágenes son del **modo demostración** en vivo ([`/demo`](https://po
 ## Características
 
 - 🛒 Catálogo de productos y carrito, pensado para uso táctil en móvil
-- ⚡ Cobro por Lightning: genera invoice BOLT11 con QR vía [LNbits](https://lnbits.com/)
+- ⚡ Cobro por Lightning: invoice BOLT11 con QR. **Tres proveedores intercambiables** detrás de un solo puerto — el comercio puede **conectar su propia wallet** por [NWC / NIP-47](https://nwc.dev) y conservar la custodia
+- 💵 **Cobro en efectivo**, con recibo, historial y reportes por método: la orden es la venta, así que una venta sin bitcoin no es invisible para el dueño
 - 💱 Conversión MXN → sats en tiempo real con tipo de cambio de Bitso
 - 🔔 Confirmación de pago por webhook + WebSocket, con *poll fallback* si el WS cae
 - 🔐 Autenticación por PIN con JWT firmado, rate limit y lockout ante fuerza bruta
@@ -62,17 +63,23 @@ Todas las imágenes son del **modo demostración** en vivo ([`/demo`](https://po
 
 | Capa | Tecnología |
 |---|---|
-| Backend | Python 3.12 · FastAPI · SQLite (aiosqlite) |
+| Backend | Python 3.12 · FastAPI · PostgreSQL (multi-tenant, `/api/v2`) · SQLite (instalación single-tenant) |
 | Frontend | React 19 · Vite · TypeScript · Tailwind CSS v4 |
 | App móvil (iOS + Android) | Expo SDK 54 · React Native · TypeScript (repo `expo-pos-terminal`, consume `/api/v2`) |
-| Lightning | LNbits (+ Phoenixd como funding source en producción) |
+| Lightning | **NWC / NIP-47** (BYO wallet, cliente propio) · **Lexe** (nodo self-custodial hospedado) · LNbits (legado) |
 | Infra | Docker Compose · Nginx (frontend) |
 
 Arquitectura limpia en ambos lados: `domain/` (entidades y ports), `application/` (use cases), `infrastructure/` (DB, APIs externas, WebSocket) y `presentation/` (routes / components).
 
-El frontend nunca habla con LNbits directamente: FastAPI actúa como middleware y es el único que conoce las API keys.
+El frontend nunca habla con el proveedor de pagos directamente: FastAPI es el middleware y el único que conoce las credenciales, que viajan cifradas at-rest por comercio.
+
+Cambiar de proveedor **no toca la lógica de negocio**: `domain/ports/wallet_provider.py` define el puerto y el router elige la implementación por el **formato de la credencial** del comercio. Con NWC los fondos nunca pasan por nosotros — el comercio concede permiso de **sólo recibir** y lo revoca desde su propia wallet cuando quiera.
 
 ## Quickstart (desarrollo)
+
+> El stack local levanta la instalación **single-tenant** con LNbits, que es el camino más
+> corto para probar sin cuentas. El API multi-tenant (`/api/v2`) usa los rails NWC / Lexe y se
+> testea con `docker-compose.test-mt.yml`.
 
 Requisitos: Docker + Docker Compose.
 
@@ -114,14 +121,17 @@ Todas las variables del backend usan el prefijo `LPOS_` y están documentadas en
 
 - `LPOS_JWT_SECRET` — obligatorio (`openssl rand -hex 32`)
 - `LPOS_PIN_HASH` — SHA-256 del PIN inicial
-- `LPOS_LNBITS_URL` / `LPOS_LNBITS_API_KEY` / `LPOS_LNBITS_WEBHOOK_SECRET`
+- Del proveedor de pagos, según el rail: `LPOS_LNBITS_*` (legado) o `LPOS_LEXE_SIDECAR_URL`.
+  **NWC no necesita configuración global**: cada comercio trae su cadena de conexión.
+- `LPOS_LIGHTNING_ENABLED` — interruptor del rail Lightning (el efectivo nunca depende de él)
 - `LPOS_ALLOWED_ORIGINS` — CORS explícito, sin wildcards
 
 ## Decisiones de diseño
 
 - Montos en MXN se almacenan como `REAL`; montos en sats como `INTEGER`.
 - Nombre y precio del producto se desnormalizan en `sale_items` al momento de la venta: el ticket histórico no cambia si el catálogo se edita después.
-- Webhooks de pago son idempotentes; reintento de LNbits no duplica ventas.
+- Webhooks de pago son idempotentes; un reintento del proveedor no duplica ventas.
+- **No se ofrece un método de pago que no se pueda cumplir**: la app pregunta al backend qué puede cobrar ese comercio, y un proveedor caído responde con un código propio en vez de un error genérico — el comerciante puede distinguir "el proveedor está caído" de "la app está rota".
 
 ## Licencia
 
@@ -134,8 +144,6 @@ Todas las variables del backend usan el prefijo `LPOS_` y están documentadas en
 
 **Cuenta Railway: `railway-standby-3`** · tier `auto` · proyecto `lightning-pos`
 
-> Vuelta atrás armada en `railway-lpos` hasta el **2026-08-02**. Al cerrarla hay que quitarle el host a esa cuenta.
-
 Las cuentas Railway de este portafolio son **trials rotativas**: cuando una vence, el workload se muda a otra. Por eso el nombre de la cuenta no es garantía de nada — **la fuente de verdad es el inventario del hub**, no este archivo:
 
 - `shared/infra/railway-inventory.json` en `x0r-memories` (campo `hosts` por cuenta)
@@ -144,5 +152,5 @@ Las cuentas Railway de este portafolio son **trials rotativas**: cuando una venc
 
 **Al mover este workload entre cuentas hay que actualizar el inventario en el mismo commit** (regla no negociable del hub) y volver a correr `stamp-deploy-location.sh` acá.
 
-<sub>Sincronizado con el inventario el 2026-07-29.</sub>
+<sub>Sincronizado con el inventario el 2026-08-20.</sub>
 <!-- END:DEPLOY-LOCATION -->

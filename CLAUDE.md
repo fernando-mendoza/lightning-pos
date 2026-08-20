@@ -69,7 +69,8 @@ Clean architecture en backend y frontend:
 
 - Idioma de codigo: ingles
 - Idioma de documentacion: espanol
-- No exponer LNbits directamente al frontend — FastAPI es el middleware
+- No exponer el proveedor de pagos directamente al frontend — FastAPI es el middleware y
+  el unico que conoce las credenciales (ver "Rails de cobro")
 - Montos en MXN son REAL, montos en sats son INTEGER
 - Desnormalizar nombre y precio de producto en sale_items al momento de la venta
 - PIN auth sin expiracion en MVP
